@@ -10,7 +10,7 @@ general:
   mode: train # can be train or infer
 dataset:
   base_url: http://localhost:9300/
-  data_path: data_9efcf814
+  data_path: data_089907f8
   save_path: dtp.pkl
   load_save_path: false
   load_dictionary: false
@@ -127,10 +127,10 @@ log:
   predictions: True # if true, save predicted examples in log folder
   test_each_epoch: True # if true, log the test accuracies per epoch
   comet:
-    api_key: ekjh2kjbxm # put the comet api key here
+    api_key:  # put the comet api key here
     project_name: clutrr # comet project name
     workspace: koustuvs # comet workspace
-    disabled: true # disable when debugging
+    disabled: false # disable when debugging
   base_path: ''
 plot:
   base_path: ''

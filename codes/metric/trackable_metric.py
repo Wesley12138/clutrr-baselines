@@ -58,7 +58,7 @@ class TrackableMetric():
         return self._counter >= self._time_span
 
     def reset(self):
-        self._reset_counter()
+        self._reset_counter()       #reset counter to 0
         self._value = self._default_value
         self._current_value = self._default_value
 

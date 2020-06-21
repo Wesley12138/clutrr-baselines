@@ -68,7 +68,7 @@ def run_experiment(config, exp, resume=False):
     config.log.logger = logger
     experiment = Experiment(config)
     parent_dir = os.path.abspath(os.pardir).split('/codes')[0]
-    # get data
+    # get datadata
     get_data(config)
     base_path = os.path.join(parent_dir, 'data', config.dataset.data_path)
     exp.log_dataset_info(config.dataset.data_path)
@@ -102,13 +102,16 @@ def run_experiment(config, exp, resume=False):
     config.model.target_size = target_size
     config.model.max_nodes = data_util.num_entity_block
     config.model.max_sent_length = data_util.max_sent_length
-    config.model.classes = data_util.target_id2word
+    #config.model.classes = data_util.target_id2word
 
     config.log.logger.info("Loading testing data")
     data_util.process_test_data(base_path, config.dataset.test_files)
     config.model.max_word_length = data_util.max_word_length
     config.model.edge_types = len(data_util.unique_edge_dict)
     config.model.unique_nodes = len(data_util.unique_nodes)
+    config.model.entity_lst = data_util.entity_lst
+    #fix
+    config.model.classes = data_util.relation_lst
 
     ## set the edge dimension w.r.t the edge encoder
     if config.model.encoder.bidirectional and config.model.graph.edge_embedding == 'lstm':

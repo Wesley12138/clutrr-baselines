@@ -153,9 +153,9 @@ def run_per_folder(args, run_num=0):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--comet_api", type=str, default='')
-    parser.add_argument("--comet_workspace", type=str, default='koustuvs')
-    parser.add_argument("--comet_project", type=str, default='compositionality-nli')
+    parser.add_argument("--comet_api", type=str, default='kfyaak9B8zgLZhw21KSlhZWfO')
+    parser.add_argument("--comet_workspace", type=str, default='wesley12138')
+    parser.add_argument("--comet_project", type=str, default='clutrr-baselines')
     parser.add_argument('--loc', type=str, default='data/')
     parser.add_argument('--models', type=str, default='bilstm_atten,bilstm_max,bilstm_mean,bilstm_concat,gat_clean,mac,rn,rn_tpr')
     parser.add_argument('--local', action='store_true', help="If true, run on machines not on slurm")

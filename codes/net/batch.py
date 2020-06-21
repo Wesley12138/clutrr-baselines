@@ -33,6 +33,7 @@ class Batch:
             bert_inp = None,            # tensor B x s, right now this contains the entity ids to be used with bert lstm
             bert_input_mask=None,       # input mask, 1 for words and 0 for padding
             bert_segment_ids=None,      # segment id, unique for each sentence
+            tri_states=None             # proof_state
             ):
 
         """
@@ -54,6 +55,7 @@ class Batch:
         :param config:                  main config file
         :param orig_inp:                Unmodified input
         :param inp_row_pos:             position over input text (B x s x w)
+        :param tri_states:              proof_state
         """
 
         self.inp = inp
@@ -87,6 +89,7 @@ class Batch:
         self.bert_inp = bert_inp
         self.bert_input_mask = bert_input_mask
         self.bert_segment_ids = bert_segment_ids
+        self.tri_states=tri_states
 
     def to_device(self, device):
         self.inp = self.inp.to(device)
@@ -96,6 +99,7 @@ class Batch:
         self.text_target_lengths = self.text_target.to(device)
         self.query = self.query.to(device)
         self.query_mask = self.query_mask.to(device)
+        # self.tri_states = self.tri_states.to(device)
         # self.inp_graphs = self.inp_graphs.to(device)
         # self.adj_mat = self.adj_mat.to(device)
         self.inp_ent_mask = self.inp_ent_mask.to(device)
@@ -151,7 +155,8 @@ class Batch:
                      query_edge=self.query_edge.clone().detach(),
                      bert_inp=self.bert_inp.clone().detach(), # right now this contains the entity ids to be used with bert lstm
                      bert_input_mask=self.bert_input_mask.clone().detach(),
-                     bert_segment_ids=self.bert_segment_ids.clone().detach()
+                     bert_segment_ids=self.bert_segment_ids.clone().detach(),
+                     tri_states=self.tri_states
                      )
 
 

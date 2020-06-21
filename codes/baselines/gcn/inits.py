@@ -13,7 +13,7 @@ def glorot(tensor):
         tensor.data.uniform_(-stdv, stdv)
 
 
-def zeros(tensor: object) -> object:
+def zeros(tensor):
     if tensor is not None:
         tensor.data.fill_(0)
 

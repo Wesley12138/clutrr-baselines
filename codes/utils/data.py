@@ -173,8 +173,12 @@ class DataUtility():
             self._check_data(test_data)
         logging.info("Loaded test data, starting preprocessing")
         p_tests = []
+
         for ti, test_data in enumerate(test_datas):
-            test_data, max_ents_test, = self.process_entities(test_data)
+            entity_lst = self.entity_lst
+            relation_lst = self.relation_lst
+            test_data, max_ents_test, = self.process_entities(test_data, entity_lst=entity_lst,
+                                                              relation_lst=relation_lst)
             self.preprocess(test_data, mode='test',
                             test_file=test_files[ti])
             p_tests.append(test_data)
@@ -220,7 +224,7 @@ class DataUtility():
             self.data_has_raw_graph = True
         return data
 
-    def process_entities(self, data, placeholder='[]'):
+    def process_entities(self, data, placeholder='[]', entity_lst=set(), relation_lst=set()):
         """
         extract entities and replace them with placeholders.
         Also maintain a per-puzzle mapping of entities
@@ -231,6 +235,11 @@ class DataUtility():
         max_ents = 0
         if placeholder == '[]':
             for i,row in data.iterrows():
+                edge_type = row['edge_types']
+                edge_type = re.findall('\'(.*?)\'', edge_type)
+                edge_type.append(row['target'])
+                relation_lst |= set(edge_type)
+
                 story = row['story']
                 ents = re.findall('\[(.*?)\]', story)
                 uniq_ents = set(ents)
@@ -243,6 +252,7 @@ class DataUtility():
                 entity_map = {}
                 entity_id_block = list(range(0, len(uniq_ents)))
                 for idx, ent in enumerate(uniq_ents):
+                    entity_lst |= {ent}
                     entity_id = random.choice(entity_id_block)
                     entity_id_block.remove(entity_id)
                     if self.process_bert:
@@ -270,6 +280,8 @@ class DataUtility():
         else:
             raise NotImplementedError("Not implemented, should replace with a tokenization policy")
         self.num_entity_block = max(max_ents, self.num_entity_block)
+        self.entity_lst = entity_lst
+        self.relation_lst = relation_lst
         return data, max_ents
 
     def preprocess(self, data, mode='train', single_abs_line=True, test_file=''):
@@ -294,6 +306,8 @@ class DataUtility():
         for i,row in data.iterrows():
             dataRow = DataRow()
             dataRow.id = row['id']
+            dataRow.proof_state = re.findall('\'(.*?)\'', row['proof_state'])
+
             story_sents = sent_tokenize(row['story'])
             if self.process_bert:
                 story_sents = [self.bert_tokenizer.tokenize(sent) for sent in story_sents]
@@ -517,6 +531,8 @@ class DataUtility():
             # inp_row_graph = dataRow.story_graph
             inp_row_pos = []
 
+            tri_states = dataRow.proof_state
+
             # for sentence tokenizations
             sent_lengths = [len(sent) for sent in dataRow.story_sents]
             if self.process_bert:
@@ -618,7 +634,7 @@ class DataUtility():
                         'num_nodes': len(nodes)}
             query_edge = [dataRow.query_edge]
             num_nodes = [len(nodes)]
-            dataRow.pattrs = [inp_row, s_inp_row, inp_ents, query, text_query, query_mask, target, text_target,
+            dataRow.pattrs = [inp_row, s_inp_row, inp_ents, tri_states, query, text_query, query_mask, target, text_target,
                sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, sentence_pointer, orig_inp, orig_inp_sent, bert_inp,
                               inp_row_pos, bert_input_mask, bert_segment_ids]
         return dataRows
@@ -669,7 +685,7 @@ class DataUtility():
         for i in range(0, len(dataRows), batch_size):
             data = [dataRows[i].pattrs for i in range(i, i+batch_size) if i < len(dataRows)]
             data.sort(key=lambda x: len(x[0]), reverse=True)
-            inp_data, s_inp_data, inp_ents, query, text_query, query_mask, target, text_target, \
+            inp_data, s_inp_data, inp_ents, tri_states, query, text_query, query_mask, target, text_target, \
             sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, \
             sentence_pointer, orig_inp, orig_inp_sent, bert_inp, _, bert_input_mask, bert_segment_ids = zip(
                 *data)
@@ -706,6 +722,7 @@ class DataUtility():
                 orig_inp=orig_inp,
                 orig_inp_sent=orig_inp_sent,
                 bert_inp=bert_inp,
+                tri_states=tri_states,
                 target=target,
                 text_target=text_target,
                 text_target_lengths=text_target_lengths,
