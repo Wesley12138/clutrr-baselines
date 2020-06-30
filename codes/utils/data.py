@@ -306,8 +306,8 @@ class DataUtility():
         for i,row in data.iterrows():
             dataRow = DataRow()
             dataRow.id = row['id']
-            dataRow.proof_state = re.findall('\'(.*?)\'', row['proof_state'])
-
+            dataRow.proof_state = re.findall('\'(.*?)\'', row['proof_state'])  # ['Donald', 'aunt', 'Dorothy', 'Donald', 'father', 'Michael', 'Michael', 'sister', 'Dorothy']
+            # Todo: proof_state's story part may contain situation like:   target : triple1,triple2,triple3 : triple4,triple5
             story_sents = sent_tokenize(row['story'])
             if self.process_bert:
                 story_sents = [self.bert_tokenizer.tokenize(sent) for sent in story_sents]
@@ -623,6 +623,7 @@ class DataUtility():
             edge_types = dataRow.edge_types
             num_ue = len(self.unique_edge_dict)
             num_e = len(edge_list)
+            story_edge_no = num_e
             edge_attr = torch.zeros(num_e, 1).long()  # [num_edges, 1]
             # create a one-hot vector for each edge type
             for i, e in enumerate(edge_types):
@@ -631,11 +632,11 @@ class DataUtility():
             x = torch.arange(len(nodes)).unsqueeze(1)  # num_nodes x 1
 
             geo_data = {'x': x, 'edge_index': edge_index, 'edge_attr': edge_attr, 'y': torch.tensor(target),
-                        'num_nodes': len(nodes)}
+                        'num_nodes': len(nodes), 'num_eg': num_e}
             query_edge = [dataRow.query_edge]
             num_nodes = [len(nodes)]
             dataRow.pattrs = [inp_row, s_inp_row, inp_ents, tri_states, query, text_query, query_mask, target, text_target,
-               sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, sentence_pointer, orig_inp, orig_inp_sent, bert_inp,
+               sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, story_edge_no, sentence_pointer, orig_inp, orig_inp_sent, bert_inp,
                               inp_row_pos, bert_input_mask, bert_segment_ids]
         return dataRows
 
@@ -686,7 +687,7 @@ class DataUtility():
             data = [dataRows[i].pattrs for i in range(i, i+batch_size) if i < len(dataRows)]
             data.sort(key=lambda x: len(x[0]), reverse=True)
             inp_data, s_inp_data, inp_ents, tri_states, query, text_query, query_mask, target, text_target, \
-            sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, \
+            sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, story_edge_no, \
             sentence_pointer, orig_inp, orig_inp_sent, bert_inp, _, bert_input_mask, bert_segment_ids = zip(
                 *data)
             inp_data, inp_lengths = simple_merge(inp_data)
@@ -733,6 +734,7 @@ class DataUtility():
                 geo_batch=geo_batch,
                 query_edge=query_edge,
                 geo_slices=slices,
+                story_edge_no=story_edge_no,
                 bert_segment_ids=bert_segment_ids,
                 bert_input_mask=bert_input_mask
             )
@@ -902,7 +904,7 @@ def collate_fn(data):
     """
     ## sort dataset by inp sentences
     data.sort(key=lambda x: len(x[0]), reverse=True)
-    inp_data, s_inp_data, inp_ents, query, text_query, query_mask, target, text_target, sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, *_ = zip(*data)
+    inp_data, s_inp_data, inp_ents, query, text_query, query_mask, target, text_target, sent_lengths, inp_ent_mask, geo_data, query_edge, num_nodes, num_eg, *_ = zip(*data)
     inp_data, inp_lengths = simple_merge(inp_data)
     s_inp_data, sent_lengths = sent_merge(s_inp_data, sent_lengths)
     # outp_data, outp_lengths = simple_merge(outp_data)
@@ -936,7 +938,8 @@ def collate_fn(data):
         inp_ent_mask = torch.LongTensor(inp_ent_mask),
         geo_batch=geo_batch,
         query_edge=query_edge,
-        geo_slices=slices
+        geo_slices=slices,
+        story_edge_no=story_edge_no
     )
 
     return batch

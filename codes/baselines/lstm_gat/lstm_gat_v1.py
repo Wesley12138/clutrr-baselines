@@ -63,7 +63,6 @@ class LstmEncoder(Net):
         entity_lst = list(self.model_config.entity_lst)
         symbol_lst = sorted({s for s in entity_lst + relation_lst} | {'UNK'})
         symbol_to_idx = {s: i for i, s in enumerate(symbol_lst)}
-        # {dict:101} {'ENTITY_0': 0, 'ENTITY_1': 1, 'ENTITY_10': 2,..., 'UNK':78,...,'uncle':99,...}
 
         nb_symbols = len(symbol_lst)  # 101
         symbol_embeddings = nn.Embedding(nb_symbols, self.embedding.embedding_dim, sparse=False)  # Embedding(101, 100)
@@ -71,7 +70,7 @@ class LstmEncoder(Net):
         linear_story_lst = []
         target_lst = []
 
-        for tri_state in batch.tri_states:  # 对每一个[triple(story)]\t(target)
+        for tri_state in batch.tri_states:
             linear_story = [symbol_to_idx[t] for t in tri_state]
             linear_story_lst += [linear_story[3:]]
             target = [linear_story[0],linear_story[2]]
