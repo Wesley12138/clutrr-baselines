@@ -1,31 +1,7 @@
-from torch import Tensor
-from torch.nn import RNN, LSTM, GRU
-import numpy as np
-from allennlp.modules.seq2vec_encoders import PytorchSeq2VecWrapper
-from allennlp.modules.seq2vec_encoders import BagOfEmbeddingsEncoder
-from allennlp.modules.seq2vec_encoders import CnnEncoder
-from allennlp.modules.seq2vec_encoders.cnn_highway_encoder import CnnHighwayEncoder
-from allennlp.modules.seq2seq_encoders import IntraSentenceAttentionEncoder
-from allennlp.modules.similarity_functions import MultiHeadedSimilarity
-
-from typing import Tuple, List, Callable, Optional
-
-import torch
-from torch import nn, Tensor
-
-from torch_geometric.data import Batch
-
-from codes.utils.util import pad_sequences
-
-from typing import List, Callable, Any
-
-# GAT with Edge features
 import torch
 from torch.nn import Parameter
-import torch.nn.functional as F
-from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.utils import add_self_loops, softmax, scatter_
-from codes.baselines.gat.inits import *
+from torch.nn import LSTM
+from allennlp.modules.seq2vec_encoders import PytorchSeq2VecWrapper
 from codes.net.base_net import Net
 
 class GraphLstmEncoder(Net):
@@ -61,7 +37,7 @@ class GraphLstmEncoder(Net):
             torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
 
         self.lstm = PytorchSeq2VecWrapper(LSTM(input_size=model_config.embedding.dim,
-                                           hidden_size=model_config.embedding.dim,
+                                           hidden_size=model_config.encoder.hidden_dim,  #   embedding.dim,
                                            bidirectional=model_config.encoder.bidirectional,
                                            batch_first=True, dropout=model_config.encoder.dropout))
 
@@ -116,7 +92,7 @@ class Decoder(Net):
     """
     def __init__(self, model_config):
         super(Decoder, self).__init__(model_config)
-        input_dim = model_config.embedding.dim * 4
+        input_dim = model_config.encoder.hidden_dim * 4
         if model_config.embedding.emb_type == 'one-hot':
             input_dim = self.model_config.unique_nodes * 3
         self.decoder2vocab = self.get_mlp(

@@ -16,3 +16,4 @@ torch-geometric
 matplotlib
 seaborn
 bert-serving-client
+allennlp

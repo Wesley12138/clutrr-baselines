@@ -19,12 +19,15 @@ from io import BytesIO
 from zipfile import ZipFile
 from urllib.request import urlopen
 from codes.utils.bert_utils import BertLocalCache
+from codes.run_all import create_csv, save_to_csv
 import pdb
 import json
 import logging
+
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 base_path = os.path.dirname(os.path.realpath(__file__)).split('codes')[0]
+
 
 def get_data(config):
     # check if data folder is present. If not, create it
@@ -94,6 +97,12 @@ def run_experiment(config, exp, resume=False):
                                config.dataset.train_file, load_dictionary=True)
         data_util.save(data_pkl_path)
 
+    # create csv for analysis
+    config.dataset.csv_file_path = create_csv(config.general.id, config.dataset.data_path, config.dataset.train_file,
+                                              config.dataset.test_files, config.model.embedding.dim,
+                                              config.model.encoder.hidden_dim)
+    config.log.logger.info("Create csv file successfully")
+
     vocab_size = len(data_util.word2id)
     config.log.logger.info("Vocab Size : {}".format(vocab_size))
     target_size = len(data_util.target_word2id)
@@ -102,7 +111,7 @@ def run_experiment(config, exp, resume=False):
     config.model.target_size = target_size
     config.model.max_nodes = data_util.num_entity_block
     config.model.max_sent_length = data_util.max_sent_length
-    #config.model.classes = data_util.target_id2word
+    # config.model.classes = data_util.target_id2word
 
     config.log.logger.info("Loading testing data")
     data_util.process_test_data(base_path, config.dataset.test_files)
@@ -110,8 +119,8 @@ def run_experiment(config, exp, resume=False):
     config.model.edge_types = len(data_util.unique_edge_dict)
     config.model.unique_nodes = len(data_util.unique_nodes)
     config.model.entity_lst = data_util.entity_lst
-    #fix
-    config.model.classes = data_util.relation_lst
+    # fix
+    config.model.classes = data_util.relation_lst  # todo: can be delete
 
     ## set the edge dimension w.r.t the edge encoder
     if config.model.encoder.bidirectional and config.model.graph.edge_embedding == 'lstm':
@@ -132,8 +141,9 @@ def run_experiment(config, exp, resume=False):
     experiment.dataloaders.test = {}
     for test_file in sorted(config.dataset.test_files):
         test_rel = int(test_file.split('_test.csv')[0].split('.')[-1])
-        experiment.dataloaders.test[test_file] = { 'dl': data_util.get_dataloader(mode='test',
-            test_file=test_file), 'test_rel': test_rel}
+        experiment.dataloaders.test[test_file] = {'dl': data_util.get_dataloader(mode='test',
+                                                                                 test_file=test_file),
+                                                  'test_rel': test_rel}
         print("created dataloader for file {}".format(test_file))
     experiment.model.encoder, experiment.model.decoder = choose_model(config)
     experiment.model.encoder = experiment.model.encoder.to(device)
@@ -177,7 +187,7 @@ def _run_epochs(experiment):
     for key in validation_metrics_dict:
         validation_metrics_dict[key].reset()
     while experiment.epoch_index <= config.model.num_epochs:
-    #while not validation_metrics_dict[metric_to_perform_early_stopping].should_stop_early():
+        # while not validation_metrics_dict[metric_to_perform_early_stopping].should_stop_early():
         print('Should stop early : ', validation_metrics_dict[metric_to_perform_early_stopping].should_stop_early())
         print(validation_metrics_dict[metric_to_perform_early_stopping])
         experiment.epoch_index += 1
@@ -203,24 +213,24 @@ def _run_epochs(experiment):
             experiment.config.log.logger.info("{} of the best performing model = {}".format(
                 key, value.get_best_so_far()))
         experiment.config.log.logger.info("Best performing epoch id {}".format(best_epoch_index))
-        #print("Test score corresponding to best performing epoch id {}".format(best_epoch_index))
-        #print(', '.join(test_acc_per_epoch[best_epoch_index - 1]))
-
+        # print("Test score corresponding to best performing epoch id {}".format(best_epoch_index))
+        # print(', '.join(test_acc_per_epoch[best_epoch_index - 1]))
 
 
 def _run_one_epoch_train_val(experiment):
-    train_loss, train_acc, val_acc, val_loss = 0,0,0,0
+    train_loss, train_acc, val_acc, val_loss = 0, 0, 0, 0
     if (experiment.dataloaders.train):
         with experiment.comet_ml.train():
             train_loss, train_acc = _run_one_epoch(experiment.dataloaders.train, experiment,
-                           mode="train",
-                           filename=experiment.config.dataset.train_file)
+                                                   mode="train",
+                                                   filename=experiment.config.dataset.train_file)
     if (experiment.dataloaders.val):
         with experiment.comet_ml.validate():
             val_loss, val_acc = _run_one_epoch(experiment.dataloaders.val, experiment,
-                           mode="val",
-                           filename=experiment.config.dataset.train_file)
+                                               mode="val",
+                                               filename=experiment.config.dataset.train_file)
     return train_loss, train_acc, val_loss, val_acc
+
 
 def _run_one_epoch_test(experiment):
     test_accs = []
@@ -241,12 +251,16 @@ def _run_one_epoch_test(experiment):
                     experiment.comet_ml.log_metric("test_acc_{}".format(test_fl_name), acc, step=epoch)
                 test_accs.append((test_fl_name, acc))
     experiment.config.log.logger.info("------------------------")
-    experiment.config.log.logger.info("togrep_final ; {} ; Epoch : {} ; Data : {} ; File : {} ; Test accuracies : {} ; Mean test accuracy : {}".format(
-        experiment.config.general.id, experiment.epoch_index, experiment.config.dataset.data_path, '',
-        ' ,'.join(['{}:{}'.format(t[0],str(t[1])) for t in test_accs]),
-        np.mean([t[1] for t in test_accs])))
-    return test_accs
+    experiment.config.log.logger.info(
+        "togrep_final ; {} ; Epoch : {} ; Data : {} ; File : {} ; Test accuracies : {} ; Mean test accuracy : {}".format(
+            experiment.config.general.id, experiment.epoch_index, experiment.config.dataset.data_path, '',
+            ' ,'.join(['{}:{}'.format(t[0], str(t[1])) for t in test_accs]),
+            np.mean([t[1] for t in test_accs])))
 
+    # save mean_test_accs
+    save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, None, None, np.mean([t[1] for t in test_accs]), 'mean')
+
+    return test_accs
 
 
 def _run_one_epoch(dataloader, experiment, mode, filename=''):
@@ -299,7 +313,7 @@ def _run_one_epoch(dataloader, experiment, mode, filename=''):
 
         num_examples += batch.batch_size
         log_batch_losses.append(batch_loss)
-        step = (experiment.epoch_index-1)*batch_size + batch_idx
+        step = (experiment.epoch_index - 1) * batch_size + batch_idx
         experiment.comet_ml.log_metric("loss", batch_loss, step=step)
 
         batch = experiment.generator.process_batch(batch, outputs, beam=False)
@@ -321,9 +335,13 @@ def _run_one_epoch(dataloader, experiment, mode, filename=''):
     #     experiment.validation_metrics['val_acc'].update(epoch_rel)
     #     experiment.validation_metrics['val_loss'].update(loss)
     experiment.config.log.logger.info(" -------------------------- ")
-    experiment.config.log.logger.info("togrep_{} ; {} ; Epoch : {} ; Data : {} ; File : {} ; Loss : {} ; Accuracy : {}".format(
-        mode, experiment.config.general.id, experiment.epoch_index, experiment.config.dataset.data_path, filename,
-        loss, epoch_rel))
+    experiment.config.log.logger.info(
+        "togrep_{} ; {} ; Epoch : {} ; Data : {} ; File : {} ; Loss : {} ; Accuracy : {}".format(
+            mode, experiment.config.general.id, experiment.epoch_index, experiment.config.dataset.data_path, filename,
+            loss, epoch_rel))
+
+    # save to csv for analysis
+    save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, filename, loss, epoch_rel, mode)
 
     experiment.comet_ml.log_metric("{}_loss".format(base_file), loss, step=experiment.epoch_index)
     experiment.comet_ml.log_metric("{}_accuracy".format(base_file), epoch_rel, step=experiment.epoch_index)
@@ -335,10 +353,9 @@ def _run_one_epoch(dataloader, experiment, mode, filename=''):
         pred_outp = [' '.join(sent) for sent in pred_outp]
         assert len(true_inp) == len(true_outp) == len(pred_outp)
         write_sequences(true_inp, true_outp, pred_outp, mode, experiment.epoch_index,
-                        exp_name=experiment.config.general.id, test_fl=filename, conf=confidences, classes=experiment.config.model.classes)
-    #if experiment.config.general.mode == 'train' and experiment.config.model.checkpoint:
+                        exp_name=experiment.config.general.id, test_fl=filename, conf=confidences,
+                        classes=experiment.config.model.classes)
+    # if experiment.config.general.mode == 'train' and experiment.config.model.checkpoint:
     #    experiment.save_checkpoint(is_best=False)
 
     return loss, epoch_rel
-
-
