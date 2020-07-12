@@ -77,7 +77,7 @@ def write_message_logs(message):
 def write_config_log(config):
     config[TYPE] = CONFIG
     log = _format_log(config)
-    write_log(log)
+    write_log(log)  # only for printing the config
 
 
 def write_metric_logs(sacred_run=None, **kwargs):

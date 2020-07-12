@@ -3,6 +3,7 @@ from codes.experiment.experiment import run_experiment
 from codes.utils.config import get_config
 from codes.utils.util import set_seed, flatten_dictionary
 from codes.utils.argument_parser import argument_parser
+from codes.run_all import modify_hyperparas, draw_from_csv
 from addict import Dict
 import os
 import logging
@@ -67,7 +68,7 @@ def init_signal_handler():
 
 if __name__ == '__main__':
     init_signal_handler()
-    config_id, exp_id = argument_parser()
+    config_id, exp_id, dataset, embedding_dim, hidden_dim = argument_parser()
     print(config_id)
     if len(exp_id) == 0:
         config = get_config(config_id=config_id)
@@ -88,11 +89,17 @@ if __name__ == '__main__':
                         disabled=True,
                         auto_output_logging=None,
                         log_code=False)
-        name = 'exp_{}'.format(config_id)
-        config.general.exp_name = name
-        ex.log_parameters(flatten_dictionary(config))
-        ex.set_name(name)
-        start(config, ex)
+
+        # loop for hyperparas
+        for ed in embedding_dim:
+            for hd in hidden_dim:
+                config = modify_hyperparas(config, config_id, dataset, ed, hd)
+
+                name = 'exp_{}'.format(config_id)
+                config.general.exp_name = name
+                ex.log_parameters(flatten_dictionary(config))
+                ex.set_name(name)
+                start(config, ex)
     else:
         logging.info("Resuming old experiment with id {}".format(exp_id))
         config = get_config(config_id=config_id)
@@ -108,3 +115,5 @@ if __name__ == '__main__':
         name = 'exp_{}'.format(config_id)
         config.general.exp_name = name
         resume(config, ex)
+
+    draw_from_csv(dataset, config_id)

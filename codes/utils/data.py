@@ -175,8 +175,8 @@ class DataUtility():
         p_tests = []
 
         for ti, test_data in enumerate(test_datas):
-            entity_lst = self.entity_lst
-            relation_lst = self.relation_lst
+            entity_lst = self.entity_lst        # todo: can be delete
+            relation_lst = self.relation_lst    # todo: can be delete
             test_data, max_ents_test, = self.process_entities(test_data, entity_lst=entity_lst,
                                                               relation_lst=relation_lst)
             self.preprocess(test_data, mode='test',

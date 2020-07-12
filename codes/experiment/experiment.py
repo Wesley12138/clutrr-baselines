@@ -257,9 +257,8 @@ def _run_one_epoch_test(experiment):
             ' ,'.join(['{}:{}'.format(t[0], str(t[1])) for t in test_accs]),
             np.mean([t[1] for t in test_accs])))
 
-    # save mean_test_accs
-    save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, None, None, np.mean([t[1] for t in test_accs]), 'mean')
-
+    # save to csv for analysis (only for 'test')
+    save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, None, test_accs, 'test')
     return test_accs
 
 
@@ -338,10 +337,12 @@ def _run_one_epoch(dataloader, experiment, mode, filename=''):
     experiment.config.log.logger.info(
         "togrep_{} ; {} ; Epoch : {} ; Data : {} ; File : {} ; Loss : {} ; Accuracy : {}".format(
             mode, experiment.config.general.id, experiment.epoch_index, experiment.config.dataset.data_path, filename,
-            loss, epoch_rel))
 
-    # save to csv for analysis
-    save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, filename, loss, epoch_rel, mode)
+                 loss, epoch_rel))
+
+    # save to csv for analysis (only for 'val')
+    if mode == 'val':
+        save_to_csv(experiment.config.dataset.csv_file_path, experiment.epoch_index, filename, [loss, epoch_rel], mode)
 
     experiment.comet_ml.log_metric("{}_loss".format(base_file), loss, step=experiment.epoch_index)
     experiment.comet_ml.log_metric("{}_accuracy".format(base_file), epoch_rel, step=experiment.epoch_index)
