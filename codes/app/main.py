@@ -3,7 +3,6 @@ from codes.experiment.experiment import run_experiment
 from codes.utils.config import get_config
 from codes.utils.util import set_seed, flatten_dictionary
 from codes.utils.argument_parser import argument_parser
-from codes.run_all import modify_hyperparas, draw_from_csv
 from addict import Dict
 import os
 import logging
@@ -68,10 +67,14 @@ def init_signal_handler():
 
 if __name__ == '__main__':
     init_signal_handler()
-    config_id, exp_id, dataset, embedding_dim, hidden_dim = argument_parser()
+    config_id, exp_id, hyperparas = argument_parser()
+    if config_id.split('_')[0] == 'graph':
+        config_id, model_name = 'graph_nn', config_id
+    else: model_name = config_id
+
     print(config_id)
     if len(exp_id) == 0:
-        config = get_config(config_id=config_id)
+        config = get_config(config_id, model_name, hyperparas)
         log_base = config['general']['base_path']
         logging.basicConfig(
             level=logging.INFO,
@@ -89,17 +92,11 @@ if __name__ == '__main__':
                         disabled=True,
                         auto_output_logging=None,
                         log_code=False)
-
-        # loop for hyperparas
-        for ed in embedding_dim:
-            for hd in hidden_dim:
-                config = modify_hyperparas(config, config_id, dataset, ed, hd)
-
-                name = 'exp_{}'.format(config_id)
-                config.general.exp_name = name
-                ex.log_parameters(flatten_dictionary(config))
-                ex.set_name(name)
-                start(config, ex)
+        name = 'exp_{}'.format(model_name)
+        config.general.exp_name = name
+        ex.log_parameters(flatten_dictionary(config))
+        ex.set_name(name)
+        start(config, ex)
     else:
         logging.info("Resuming old experiment with id {}".format(exp_id))
         config = get_config(config_id=config_id)
@@ -115,5 +112,3 @@ if __name__ == '__main__':
         name = 'exp_{}'.format(config_id)
         config.general.exp_name = name
         resume(config, ex)
-
-    draw_from_csv(dataset, config_id)

@@ -7,6 +7,7 @@ import datetime
 import yaml
 
 from codes.utils.util import make_dir, get_current_commit_id
+from codes.analysis_res import modify_hyperparas
 
 def _read_config(config_id=None):
     '''
@@ -38,11 +39,13 @@ def _get_boolean_value(value):
         return False
 
 
-def get_config(config_id=None):
+def get_config(config_id=None, model_name=None, hyperparas=None):
     '''Method to prepare the config for all downstream tasks'''
 
     config = get_base_config(config_id)
-    config.general.id = config_id
+
+    # modify hyperparameters
+    config = modify_hyperparas(config, model_name, hyperparas)
 
     config = _post_process(config)
 

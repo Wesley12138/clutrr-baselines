@@ -19,7 +19,7 @@ from io import BytesIO
 from zipfile import ZipFile
 from urllib.request import urlopen
 from codes.utils.bert_utils import BertLocalCache
-from codes.run_all import create_csv, save_to_csv
+from codes.analysis_res import create_csv, save_to_csv
 import pdb
 import json
 import logging

@@ -62,33 +62,39 @@ def save_to_csv(file_path, epoch, data_file, value, mode):
     df.to_csv(file_path)
 
 
-def modify_hyperparas(config, config_id, datasets, embedding_dim, hidden_dim):
+def modify_hyperparas(config, model_name, hyperparas):
     """
     modify hyper-parameters
-    :param config:
-    :param config_id:
-    :param datasets:
-    :param embedding_dim:
-    :param hidden_dim:
-    :return:
     """
-    config['model']['embedding']['dim'] = embedding_dim
-    config['model']['graph']['edge_dim'] = embedding_dim
-    config['model']['encoder']['hidden_dim'] = hidden_dim
+    ds, ned, eed, hd, ep, fi, he, hi = hyperparas
+    if config.genearl.id != 'gcn' and config.genearl.id != 'gat':
+        eed = ned
+    config.general.id = config.model.encoder.model_name = model_name
+    config.dataset.data_path = ds
+    config.model.embedding.dim = ned
+    config.model.graph.edge_dim = eed
+    config.model.encoder.hidden_dim = hd
+    config.model.num_epochs = ep
+    config.model.encoder.num_filters = fi
+    config.model.graph.num_reads = he
+    config.model.encoder.num_highway = hi
     print('*' * 50)
-    print(f'model={config_id}, dataset={datasets}, embedding_dim={embedding_dim}, hidden_dim={hidden_dim}')
+    print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
+          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}')
     print('*' * 50)
 
     return config
 
 
-def draw_from_csv(dataset, model_name):
-    """
-    draw img from csv
-    :param dataset:
-    :param model_name:
-    :return:
-    """
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
+    parser.add_argument('--m', default="graph_lstm", help='model name')
+    parser.add_argument('--ds', type=str, default="data_089907f8", help='dataset')
+    args = parser.parse_args()
+
+    model_name = args.m
+    dataset = args.ds
+
     path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     file_dir = os.path.join(path, 'logs', model_name, dataset)
     file_names = os.listdir(file_dir)
@@ -111,23 +117,25 @@ def draw_from_csv(dataset, model_name):
     min_idx = df_min[col_name[1]].astype(float).idxmin()  # corresponding to particular hyperparas
     min_val_loss = df_min.iloc[min_idx, 1]
     test_acc_min = df_min.iloc[min_idx, 4:].values
-    print(f'Based on minimum val_loss={min_val_loss}: {file_names[min_idx].split(".")[0]}')
-    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]))
-    print()
     # max_val_acc
     max_idx = df_max[col_name[2]].astype(float).idxmax()
     max_val_acc = df_max.iloc[max_idx, 2]
     test_acc_max = df_max.iloc[max_idx, 4:].values
-    print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}')
-    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]))
-    print()
     # max_10_test_acc
     max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
     max_10_test_acc = df_10.iloc[max_idx_10, -1]
     test_acc_best_10 = df_10.iloc[max_idx_10, 4:].values
-    print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}')
-    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]))
-    print()
+
+    log_dir = os.path.join(path, 'logs', model_name, f'{dataset}_{model_name}.txt')
+    with open(log_dir, 'w') as fl:
+        print(f'Based on minimum val_loss={min_val_loss}: {file_names[min_idx].split(".")[0]}', file=fl)
+        print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]), file=fl)
+        print(file=fl)
+        print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}', file=fl)
+        print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
+        print(file=fl)
+        print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}', file=fl)
+        print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
 
     img_dir = os.path.join(path, 'plots', model_name, dataset)
     if not os.path.exists(img_dir):
