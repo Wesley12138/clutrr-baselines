@@ -98,9 +98,7 @@ def run_experiment(config, exp, resume=False):
         data_util.save(data_pkl_path)
 
     # create csv for analysis
-    config.dataset.csv_file_path = create_csv(config.general.id, config.dataset.data_path, config.dataset.train_file,
-                                              config.dataset.test_files, config.model.embedding.dim,
-                                              config.model.encoder.hidden_dim)
+    config.dataset.csv_file_path = create_csv(config)
     config.log.logger.info("Create csv file successfully")
 
     vocab_size = len(data_util.word2id)
