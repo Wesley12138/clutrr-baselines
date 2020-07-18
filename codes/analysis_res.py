@@ -7,22 +7,32 @@ import argparse
 import shutil
 
 
-def create_csv(model_name, dataset, train_file, test_file, embedding_dim, hidden_dim):
+def create_csv(config):
     """
     create csv file for later data input
-    :param dir:
-    :param train_file:
-    :param test_file:
-    :param embedding_dim:
-    :param hidden_dim:
     :return:
     """
+    model_name = config.general.id
+    dataset = config.dataset.data_path
+    train_file = config.dataset.train_file
+    test_file = config.dataset.test_files
+    embedding_dim = config.model.embedding.dim
+    hidden_dim = config.model.encoder.hidden_dim
+    ned = config.model.embedding.dim
+    eed = config.model.graph.edge_dim
+    hd = config.model.encoder.hidden_dim
+    ep = config.model.num_epochs
+    fi = config.model.encoder.num_filters
+    he = config.model.graph.num_reads
+    hi = config.model.encoder.num_highway
+
     base_path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines'
     file_dir = os.path.join(base_path, 'logs', model_name, dataset)
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)
-    file_path = os.path.join(file_dir, f'{dataset}_{model_name}_ed_{embedding_dim}_hd_{hidden_dim}.csv')
+    file_path = os.path.join(file_dir,
+                             f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}.csv')
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
@@ -86,15 +96,13 @@ def modify_hyperparas(config, model_name, hyperparas):
     return config
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
-    parser.add_argument('--m', default="graph_lstm", help='model name')
-    parser.add_argument('--ds', type=str, default="data_089907f8", help='dataset')
-    args = parser.parse_args()
-
-    model_name = args.m
-    dataset = args.ds
-
+def analysis_draw(model_name, dataset):
+    """
+    analyse results and draw the img
+    :param model_name:
+    :param dataset:
+    :return:
+    """
     path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     file_dir = os.path.join(path, 'logs', model_name, dataset)
     file_names = os.listdir(file_dir)
@@ -163,4 +171,17 @@ if __name__ == '__main__':
     plt.title(f'best_max_10_test_acc_{file_names[max_idx_10].split(".")[0]}')
     plt.savefig(os.path.join(img_dir, f'best_max_10_test_acc_{file_names[max_idx_10].split(".")[0]}.jpg'))
 
-    # plt.show()
+    print('Analysis Complete!')
+    plt.show()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
+    parser.add_argument('--m', default="graph_lstm", help='model name')
+    parser.add_argument('--ds', type=str, default="data_089907f8", help='dataset')
+    args = parser.parse_args()
+
+    model_name = args.m
+    dataset = args.ds
+
+    analysis_draw(model_name, dataset)
