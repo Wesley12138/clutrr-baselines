@@ -1,12 +1,12 @@
 from typing import Tuple, List, Callable, Optional
 
 import torch
-from allennlp.modules.seq2seq_encoders import IntraSentenceAttentionEncoder
+# from allennlp.modules.seq2seq_encoders import IntraSentenceAttentionEncoder
 from allennlp.modules.seq2vec_encoders import BagOfEmbeddingsEncoder
 from allennlp.modules.seq2vec_encoders import CnnEncoder
 from allennlp.modules.seq2vec_encoders import PytorchSeq2VecWrapper
 from allennlp.modules.seq2vec_encoders.cnn_highway_encoder import CnnHighwayEncoder
-from allennlp.modules.similarity_functions import MultiHeadedSimilarity
+# from allennlp.modules.similarity_functions import MultiHeadedSimilarity
 from torch import Tensor
 from torch.nn import Parameter, RNN, LSTM, GRU
 
@@ -46,12 +46,7 @@ class Encoder(Net):
             torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
 
         encoder_factory = Seq2VecEncoderFactory()
-        self.encoder = encoder_factory.build(name=model_config.encoder.model_name,
-                                             embedding_dim=model_config.embedding.dim,
-                                             hidden_size=model_config.encoder.hidden_dim,
-                                             num_filters=model_config.encoder.num_filters,
-                                             num_heads=model_config.graph.num_reads,
-                                             num_highway=model_config.encoder.num_highway)
+        self.encoder = encoder_factory.build(model_config)
 
     def forward(self, batch):
         data = batch.geo_batch
@@ -90,13 +85,30 @@ class Decoder(Net):
 
     def __init__(self, model_config):
         super(Decoder, self).__init__(model_config)
-        input_dim = model_config.encoder.hidden_dim * 4
+
+        model_name = model_config.encoder.model_name.split('_')[-1]
+        if model_name == 'boe':
+            input_dim = model_config.embedding.dim * 2
+        elif model_name == 'cnn':
+            input_dim = model_config.encoder.output_dim * 2
+        elif model_name == 'cnnh':
+            input_dim = model_config.encoder.projection_dim * 2
+        else: # rnn, lstm, gru
+            input_dim = model_config.encoder.hidden_dim * 2
+            if model_config.encoder.bidirectional:
+                input_dim *= 2
+
+
+
         if model_config.embedding.emb_type == 'one-hot':
             input_dim = self.model_config.unique_nodes * 3
+
         self.decoder2vocab = self.get_mlp(
             input_dim,
             model_config.target_size
         )
+
+        # self.projection = None
 
     def calculate_query(self, batch):
         """
@@ -113,24 +125,29 @@ class Decoder(Net):
 
         return self.decoder2vocab(node_cat), None, None
 
+        # if self.projection is None:
+        #     self.projection = nn.Linear(node_cat[-1], 18)
+        # return self.projection, None, None
 
 class Seq2VecEncoderFactory:
     def __init__(self):
         super().__init__()
 
     @staticmethod
-    def build(name: str,
-              embedding_dim: int,
-              hidden_size: int = 32,
-              num_filters: int = 1,
-              num_heads: int = 3,
-              output_dim: int = 30,
-              ngram_filter_sizes: Tuple = (1, 2, 3, 4, 5),
-              filters: List[List[int]] = [[1, 4], [2, 8], [3, 16], [4, 32], [5, 64]],
-              num_highway: int = 2,
-              projection_dim: int = 16) -> Callable[[Tensor, Optional[Tensor]], Tensor]:
+    def build(model_config,
+              ngram_filter_sizes=(1, 2),
+              filters=[[1, 4], [2, 8]]
+              ) -> Callable[[Tensor, Optional[Tensor]], Tensor]:
 
-        name = name.split('_')[1]
+        name = model_config.encoder.model_name.split('_')[1]
+        embedding_dim = model_config.embedding.dim
+        hidden_size = model_config.encoder.hidden_dim
+        num_filters = model_config.encoder.num_filters
+        num_heads = model_config.graph.num_reads
+        output_dim = model_config.encoder.output_dim
+        num_highway = model_config.encoder.num_highway
+        projection_dim = model_config.encoder.projection_dim
+
         encoder = None
         if name == 'boe':
             encoder = BagOfEmbeddingsEncoder(embedding_dim=embedding_dim, averaged=True)
@@ -149,18 +166,18 @@ class Seq2VecEncoderFactory:
         elif name == 'gru':
             gru = GRU(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
             encoder = PytorchSeq2VecWrapper(gru)
-        elif name == 'intra':
-            intra = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=output_dim, combination="1,2")
-            aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
-                                              hidden_size=hidden_size, batch_first=True))
-            encoder = lambda x, y: aggr(intra(x, y), y)
-        elif name == 'multihead':
-            sim = MultiHeadedSimilarity(num_heads, embedding_dim)
-            multi = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=embedding_dim,
-                                                  similarity_function=sim, num_attention_heads=num_heads,
-                                                  combination="1+2")
-            aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim, bidirectional=True,
-                                              hidden_size=hidden_size, batch_first=True))
-            encoder = lambda x, y: aggr(multi(x, y), y)
+        # elif name == 'intra':
+        #     intra = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=output_dim, combination="1,2")
+        #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
+        #                                       hidden_size=hidden_size, batch_first=True))
+        #     encoder = lambda x, y: aggr(intra(x, y), y)
+        # elif name == 'multihead':
+        #     sim = MultiHeadedSimilarity(num_heads, embedding_dim)
+        #     multi = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=embedding_dim,
+        #                                           similarity_function=sim, num_attention_heads=num_heads,
+        #                                           combination="1+2")
+        #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim, bidirectional=True,
+        #                                       hidden_size=hidden_size, batch_first=True))
+        #     encoder = lambda x, y: aggr(multi(x, y), y)
         assert encoder is not None
         return encoder
