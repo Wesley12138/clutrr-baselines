@@ -1,4 +1,6 @@
 from comet_ml import Experiment, ExistingExperiment
+
+from codes.analysis_res import analysis_draw
 from codes.experiment.experiment import run_experiment
 from codes.utils.config import get_config
 from codes.utils.util import set_seed, flatten_dictionary
@@ -112,3 +114,5 @@ if __name__ == '__main__':
         name = 'exp_{}'.format(config_id)
         config.general.exp_name = name
         resume(config, ex)
+
+    # analysis_draw(model_name, hyperparas[0])
