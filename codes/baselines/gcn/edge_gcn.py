@@ -2,9 +2,9 @@
 import torch
 from torch.nn import Parameter
 import torch.nn.functional as F
-from torch.nn import Sequential as Seq, Linear, ReLU
 from torch_geometric.nn.conv import MessagePassing
-from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
+from torch_geometric.utils import add_remaining_self_loops
+from torch_scatter import scatter_add
 
 from codes.baselines.gcn.inits import *
 from codes.net.base_net import Net
@@ -15,22 +15,15 @@ class EdgeGcnConv(MessagePassing):
                  in_channels: int,
                  out_channels: int,
                  edge_dim: int,
-                 # heads: int = 1,
-                 # negative_slope: float = 0.2,
+                 improved: bool = False,   #new
                  dropout: float = 0.0,
-                 bias: bool = True
-                 # **kwargs
-                 ):
-        super(EdgeGcnConv, self).__init__(aggr='max')
-        self.mlp = Seq(Linear(2 * in_channels, out_channels),
-                       ReLU(),
-                       Linear(out_channels, out_channels))
+                 bias: bool = True):
+        super(EdgeGcnConv, self).__init__(aggr='add')
 
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.edge_dim = edge_dim
-        # self.concat = concat
-        # self.negative_slope = negative_slope
+        self.improved = improved  # new
         self.dropout = dropout
         self.weight = Parameter(torch.Tensor(in_channels, out_channels))
         self.edge_update = Parameter(torch.Tensor(out_channels + edge_dim, out_channels))
@@ -42,35 +35,39 @@ class EdgeGcnConv(MessagePassing):
 
         self.reset_parameters()
 
-    # def reset_parameters(self):
-    #     stdv = 1. / math.sqrt(self.weight.size(1))
-    #     self.weight.data.uniform_(-stdv, stdv)
-    #     stdv = 1. / math.sqrt(self.edge_update.size(1))
-    #     self.weight.data.uniform_(-stdv, stdv)
-    #     if self.bias is not None:
-    #         self.bias.data.uniform_(-stdv, stdv)
     def reset_parameters(self):
         glorot(self.weight)
-        # glorot(self.att)
         glorot(self.edge_update)
         zeros(self.bias)
 
-    def forward(self, x, edge_index):
-        # x has shape [N, in_channels]
-        # edge_index has shape [2, E]
+    def forward(self, x, edge_index,edge_attr, edge_weight=None):
 
-        return self.propagate(edge_index, size=(x.size(0), x.size(0)), x=x)
+        x = torch.matmul(x, self.weight)
+        if edge_weight is None:
+            edge_weight = torch.ones((edge_index.size(1),), dtype=x.dtype, device=edge_index.device)
 
-    def message(self, x_i, x_j):
-        # x_i has shape [E, in_channels]
-        # x_j has shape [E, in_channels]
+        fill_value = 1 if not self.improved else 2
+        edge_index, edge_weight = add_remaining_self_loops(edge_index, edge_weight, fill_value, x.size(0))
 
-        tmp = torch.cat([x_i, x_j - x_i], dim=1)  # tmp has shape [E, 2 * in_channels]
-        return self.mlp(tmp)
+        self_loop_edges = torch.zeros(x.size(0), edge_attr.size(1)).to(edge_index.device)
+        edge_attr = torch.cat([edge_attr, self_loop_edges], dim=0)
+
+        row, col = edge_index
+        deg = scatter_add(edge_weight, row, dim=0, dim_size=x.size(0))
+        deg_inv_sqrt = deg.pow(-0.5)
+        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
+
+        norm = deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
+        return self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)
+
+    def message(self, x_j, edge_attr, norm):
+        x_j = torch.cat([x_j, edge_attr], dim=-1)
+
+        return norm.view(-1, 1) * x_j
 
     def update(self, aggr_out):
-        # aggr_out has shape [N, out_channels]
-        bia = self.bias
+        aggr_out = torch.mm(aggr_out, self.edge_update)
+
         if self.bias is not None:
             aggr_out = aggr_out + self.bias
         return aggr_out
@@ -117,16 +114,16 @@ class GcnEncoder(Net):
                                 self.model_config.graph.edge_dim, dropout = self.model_config.graph.dropout)
         self.att2 = EdgeGcnConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
                                 self.model_config.graph.edge_dim)
-        # self.dropout = self.model_config.graph.dropout
 
     def forward(self, batch):
         data = batch.geo_batch
         x = self.embedding(data.x).squeeze(1) # N x node_dim
-        # edge_attr = self.edge_embedding(data.edge_attr).squeeze(1) # E x edge_dim
+        edge_attr = self.edge_embedding(data.edge_attr).squeeze(1) # E x edge_dim
         for nr in range(self.model_config.graph.num_message_rounds):
-            x = F.relu(self.att1(x, data.edge_index))
             x = F.dropout(x, p=0.6, training=self.training)
-            x = self.att2(x, data.edge_index)
+            x = F.elu(self.att1(x, data.edge_index, edge_attr))
+            x = F.dropout(x, p=0.6, training=self.training)
+            x = self.att2(x, data.edge_index, edge_attr)
         # restore x into B x num_node x dim
         chunks = torch.split(x, batch.geo_slices, dim=0)
         chunks = [p.unsqueeze(0) for p in chunks]
