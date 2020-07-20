@@ -39,7 +39,7 @@ def _get_boolean_value(value):
         return False
 
 
-def get_config(config_id=None, model_name=None, hyperparas=None):
+def get_config(config_id, model_name, hyperparas):
     '''Method to prepare the config for all downstream tasks'''
 
     config = get_base_config(config_id)

@@ -1,0 +1,125 @@
+dataset:
+  base_url: http://localhost:9300/
+  common_dict: true
+  data_path: data_089907f8
+  filename: output.csv
+  is_preprocessed: true
+  load_dictionary: false
+  load_save_path: false
+  max_vocab: -1
+  name: family
+  save_path: dtp.pkl
+  sentence_mode: false
+  tokenization: word
+  train_test_split: 0.8
+  train_val_split: 0.8
+general:
+  base_path: ''
+  commit_id: ''
+  description: Sample code. Does not train any model
+  device: cuda:0
+  exp_name: default
+  id: GRAPHSUM1
+  mode: train
+  seed: 42
+log:
+  base_path: ''
+  comet:
+    api_key: kfyaak9B8zgLZhw21KSlhZWfO
+    disabled: false
+    project_name: clutrr-baselines
+    workspace: wesley12138
+  file_path: ''
+  logs_per_epoch: 50
+  predictions: true
+  test_each_epoch: true
+model:
+  batch_size: 100
+  beam:
+    alpha: 0
+    beam_size: 3
+    beta: 0
+    coverage_penalty: 0
+    length_penalty: 0
+    max_length: 25
+    n_best: 1
+  checkpoint: true
+  decoder:
+    bidirectional: false
+    dropout: 0
+    hidden_dim: 200
+    name: codes.baselines.gcn.edge_gcn.GcnDecoder
+    nlayers: 2
+    query_ents: 2
+    tmp_name: codes.models.gnn.decoder.GraphLSTMDecoder
+    use_attention: false
+  dropout_probability: 0
+  early_stopping:
+    metric_to_track: val_loss
+    patience: 3
+  early_stopping_patience: 1
+  embedding:
+    dim: 10
+    emb_type: random
+    entity_embedding_policy: fixed
+    pretrained_embedding_path: w2v/w2v_sst.txt
+    should_finetune_embedding: true
+    should_use_pretrained_embedding: false
+  encoder:
+    bidirectional: true
+    dropout: 0
+    hidden_dim: 32
+    invalidate_embeddings: true
+    name: codes.baselines.gcn.edge_gcn.GcnEncoder
+    nlayers: 2
+    pooling: maxpool
+    tmp_name: codes.models.gnn.encoder.GraphEncoder
+  graph:
+    dropout: 0.0
+    edge_dim: 10
+    edge_dim_type: random
+    edge_embedding: word
+    feature_dim: 10
+    message_dim: 100
+    message_function:
+      fn_type: edge
+      num_layers: 2
+      use_attention: false
+      use_layer_norm: true
+    node_dim: 100
+    num_message_rounds: 3
+    num_reads: 3
+    pos_dim: 5
+    pos_rep: random
+    readout_function:
+      num_layers: 2
+      read_mode: average
+    update_function:
+      fn_type: lstm
+      num_layers: 2
+      use_layer_norm: true
+  loss_criteria: CE
+  loss_type: classify
+  name: graph
+  num_entity_block: 20
+  num_epochs: 50
+  optimiser:
+    clip: 1
+    l2_penalty: 0
+    learning_rate: 0.001
+    name: adam
+    scheduler_gamma: 1
+    scheduler_patience: 10
+    scheduler_type: exp
+  persist_per_epoch: -1
+  query_entities: 2
+  rn:
+    f_theta:
+      dim_1: 256
+      dim_2: 512
+    g_theta_dim: 265
+  save_dir: ''
+  should_load_model: false
+  tf_ratio: 1
+plot:
+  base_path: ''

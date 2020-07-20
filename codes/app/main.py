@@ -115,4 +115,5 @@ if __name__ == '__main__':
         config.general.exp_name = name
         resume(config, ex)
 
+    print(hyperparas)
     # analysis_draw(model_name, hyperparas[0])
