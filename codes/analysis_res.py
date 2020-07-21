@@ -89,10 +89,10 @@ def modify_hyperparas(config, model_name, hyperparas):
     config.model.encoder.num_filters = fi
     config.model.graph.num_reads = he
     config.model.encoder.num_highway = hi
-    print('*' * 50)
+    print('*' * 100)
     print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
           f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}')
-    print('*' * 50)
+    print('*' * 100)
 
     return config
 

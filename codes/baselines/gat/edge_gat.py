@@ -4,6 +4,7 @@ from torch.nn import Parameter
 import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
+
 from codes.baselines.gat.inits import *
 from codes.net.base_net import Net
 
