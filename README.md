@@ -24,6 +24,8 @@ Codebase for experiments on the [CLUTRR benchmark suite](https://github.com/face
 - Pandas
 - Pyyaml
 - tqdm
+- allennlp, 0.9.0
+- torch-geometirc, 1.4.3
 
 ## Citation
 

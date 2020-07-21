@@ -79,7 +79,7 @@ model:
     bidirectional: false
     dropout: 0
     query_ents: 2
-    tmp_name: codes.models.gnn.decoder.GraphLSTMDecoder
+    tmp_name: codes.models.gnn.decoder.GraphDecoder
     use_attention: False  # use attention in classification decoder
   beam:
     beam_size: 3
@@ -119,12 +119,12 @@ model:
       dim_1: 256
       dim_2: 512
 log:
-  file_path: '' #'logs/gat.log'
+  file_path: ''
   logs_per_epoch: 50
   predictions: False # if true, save predicted examples in log folder
   test_each_epoch: True # if true, log the test accuracies per epoch
   comet:
-    api_key: kfyaak9B8zgLZhw21KSlhZWfO # put the comet api key here
+    api_key: XXX # put the comet api key here
     project_name: clutrr-baselines # comet project name
     workspace: wesley12138 # comet workspace
     disabled: false # disable when debugging

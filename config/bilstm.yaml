@@ -118,10 +118,10 @@ model:
 log:
   file_path: ''
   logs_per_epoch: 50
-  predictions: True # if true, save predicted examples in log folder
+  predictions: False # if true, save predicted examples in log folder
   test_each_epoch: True # if true, log the test accuracies per epoch
   comet:
-    api_key: kfyaak9B8zgLZhw21KSlhZWfO # put the comet api key here
+    api_key: XXX # put the comet api key here
     project_name: clutrr-baselines  # comet project name
     workspace: wesley12138  # comet workspace
     disabled: false # disable when debugging
