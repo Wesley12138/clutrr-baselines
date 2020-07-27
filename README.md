@@ -17,7 +17,7 @@ Codebase for experiments on the [CLUTRR benchmark suite](https://github.com/face
 
 ### Dependencies
 
-- Pytorch, 1.0
+- Pytorch, 1.5.0
 - Comet.ml
 - Addict
 - NLTK
