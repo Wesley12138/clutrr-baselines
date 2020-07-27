@@ -63,7 +63,8 @@ class Encoder(Net):
         # if max(batch.story_edge_no) != min(batch.story_edge_no):
         max_no = max(batch.story_edge_no)
         need_add = [max_no - i for i in batch.story_edge_no]  # list:100
-        add_triple = torch.tensor([[11., 14., 11.]], dtype=torch.float, device=edge_index.device)
+        add_triple = torch.tensor([[self.model_config.unique_nodes, self.model_config.edge_types,
+                                    self.model_config.unique_nodes]], dtype=torch.float, device=edge_index.device)  # [11., 14., 11.]]
         story_padded = [torch.cat((i, add_triple.repeat(1, j)), 1) for i, j in zip(triples, need_add)]  # padding
         batch_story = torch.stack(story_padded, dim=0)
         chunk = torch.split(batch_story.squeeze(1).view(-1, 3).long(), 1, dim=1)  # list:3  200x1

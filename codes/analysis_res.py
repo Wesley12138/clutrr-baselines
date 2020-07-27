@@ -36,7 +36,10 @@ def create_csv(config):
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
-    test_name = [eval(f.split('.')[1].split('_')[0]) for f in test_file]  # i.e. [10, 2, 3,...]
+    if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
+        test_name = [eval(f.split('.')[1].split('_')[0]) for f in test_file]  # i.e. [10, 2, 3,...]
+    else:
+        test_name = [eval(f.split('/')[-1].split('_')[0]) for f in test_file]
     attr = ['Epoch', f'{train_name}_loss', f'{train_name}_acc', 'Mean_test_accuracy'] + [f'{t}_test_acc' for t in
                                                                                          sorted(test_name)]
     df = pd.DataFrame(columns=attr)
@@ -63,8 +66,13 @@ def save_to_csv(file_path, epoch, data_file, value, mode):
         df.at[epoch, f'{file_name}_loss'] = value[0]
         df.at[epoch, f'{file_name}_acc'] = value[1]
     elif mode == 'test':
+        dataset = file_path.split('/')[-2]
         for t in value:
-            file_name = t[0].split('.')[1] + '_acc'  # i.e. 10_test_acc
+            if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
+                file_name = t[0].split('.')[1] + '_acc'  # i.e. 10_test_acc
+            else:
+                file_name = t[0].split('/')[-1].split('_')[0] + '_test_acc'  # 2.3_test_acc
+
             df.at[epoch, file_name] = t[1]
 
         df.at[epoch, 'Mean_test_accuracy'] = np.mean([t[1] for t in value])
@@ -108,6 +116,7 @@ def analysis_draw(model_name, dataset):
     for ds in dataset:
         best_min_val_loss = []
         best_max_val_acc = []
+        best_max_mean_test_acc = []
         best_max_10_test_acc = []
 
         for model in model_name:
@@ -116,7 +125,7 @@ def analysis_draw(model_name, dataset):
             csv_datas = [pd.read_csv(os.path.join(file_dir, cf)) for cf in file_names]
 
             col_name = list(csv_datas[0].columns)
-            df_min = df_max = df_10 = pd.DataFrame(columns=col_name)
+            df_min = df_max = df_mean = df_10 = pd.DataFrame(columns=col_name)
             for i, csv_data_ in enumerate(csv_datas):
                 # min val_loss
                 opt_idx_min = csv_data_[col_name[1]].idxmin()
@@ -124,6 +133,9 @@ def analysis_draw(model_name, dataset):
                 # max_val_acc
                 opt_idx_max = csv_data_[col_name[2]].idxmax()
                 df_max = df_max.append(csv_data_.iloc[opt_idx_max], ignore_index=True)
+                # max_mean_test_acc
+                opt_idx_mean = csv_data_[col_name[3]].idxmax()
+                df_mean = df_mean.append(csv_data_.iloc[opt_idx_mean], ignore_index=True)
                 # max_10_test_acc
                 opt_idx_10 = csv_data_[col_name[-1]].idxmax()
                 df_10 = df_10.append(csv_data_.iloc[opt_idx_10], ignore_index=True)
@@ -136,6 +148,10 @@ def analysis_draw(model_name, dataset):
             max_idx = df_max[col_name[2]].astype(float).idxmax()
             max_val_acc = df_max.iloc[max_idx, 2]
             test_acc_max = df_max.iloc[max_idx, 4:].values
+            # max_mean_test_acc
+            max_idx_mean = df_mean[col_name[3]].astype(float).idxmax()
+            max_mean_test_acc = df_mean.iloc[max_idx_mean, 3]
+            test_acc_max_mean = df_mean.iloc[max_idx_mean, 4:].values
             # max_10_test_acc
             max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
             max_10_test_acc = df_10.iloc[max_idx_10, -1]
@@ -149,11 +165,15 @@ def analysis_draw(model_name, dataset):
                 print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}', file=fl)
                 print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
                 print(file=fl)
+                print(f'Based on maximum mean_test_acc={max_mean_test_acc}: {file_names[max_idx_mean].split(".")[0]}', file=fl)
+                print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
+                print(file=fl)
                 print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}', file=fl)
                 print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
 
             best_min_val_loss.append(test_acc_min)
             best_max_val_acc.append(test_acc_max)
+            best_max_mean_test_acc.append(test_acc_max_mean)
             best_max_10_test_acc.append(test_acc_best_10)
 
             # x = col_name[4:]
@@ -185,6 +205,7 @@ def analysis_draw(model_name, dataset):
         x = col_name[4:]
         draw_img(x, best_min_val_loss, model_name, img_dir, 'best_min_val_loss')
         draw_img(x, best_max_val_acc, model_name, img_dir, 'best_max_val_acc')
+        draw_img(x, best_max_mean_test_acc, model_name, img_dir, 'best_max_mean_test_acc')
         draw_img(x, best_max_10_test_acc, model_name, img_dir, 'best_max_10_test_acc')
         # plt.show()
 
@@ -195,8 +216,8 @@ def draw_img(x, ys, model, img_dir, name):
     plt.figure()
     for y, m in zip(ys, model):
         plt.plot(x, y, label=m)
-    plt.legend()
-    plt.xticks(rotation=45)
+    plt.legend(loc=3)
+    plt.xticks(rotation=15)
     plt.title(name)
     plt.savefig(os.path.join(img_dir, f'{name}.jpg'))
 
@@ -210,3 +231,6 @@ if __name__ == '__main__':
     dataset = args.ds
 
     analysis_draw(model_name, dataset)
+
+
+# python codes/analysis_res.py --m gat gcn graph_lstm graph_rnn graph_gru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
