@@ -167,7 +167,7 @@ class DataUtility():
         :param test_files: array of file names
         :return:
         """
-        self.test_files = test_files #[os.path.join(base_path, t) + '_test.csv' for t in test_files]
+        self.test_files = test_files  #[os.path.join(base_path, t) + '_test.csv' for t in test_files]
         test_datas = [pd.read_csv(tf, comment='#') for tf in self.test_files]
         for test_data in test_datas:
             self._check_data(test_data)

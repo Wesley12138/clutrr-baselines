@@ -14,7 +14,8 @@ def argument_parser():
     parser.add_argument('--fi', type=int, default=1, help='num of filters')
     parser.add_argument('--he', type=int, default=3, help='num of heads')
     parser.add_argument('--hi', type=int, default=2, help='num of highway')
+    parser.add_argument('--se', type=int, default=42, help='seed')
 
     args = parser.parse_args()
 
-    return args.config_id, args.exp_id, (args.ds, args.ned, args.eed, args.hd, args.ep, args.fi, args.he, args.hi)
+    return args.config_id, args.exp_id, (args.ds, args.ned, args.eed, args.hd, args.ep, args.fi, args.he, args.hi, args.se)

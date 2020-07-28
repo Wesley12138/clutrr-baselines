@@ -13,6 +13,7 @@ def create_csv(config):
     :return:
     """
     model_name = config.general.id
+    se = config.general.seed
     dataset = config.dataset.data_path
     train_file = config.dataset.train_file
     test_file = config.dataset.test_files
@@ -29,11 +30,18 @@ def create_csv(config):
     base_path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines'
     file_dir = os.path.join(base_path, 'logs', model_name, dataset)
+    if se != 42:
+        file_dir = os.path.join(file_dir, 'repeat')
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)
-    file_path = os.path.join(file_dir,
+    if se == 42:
+        file_path = os.path.join(file_dir,
                              f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}.csv')
-    # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
+        # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
+    else:
+        file_path = os.path.join(file_dir,
+                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}.csv')
+
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
     if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
@@ -66,9 +74,9 @@ def save_to_csv(file_path, epoch, data_file, value, mode):
         df.at[epoch, f'{file_name}_loss'] = value[0]
         df.at[epoch, f'{file_name}_acc'] = value[1]
     elif mode == 'test':
-        dataset = file_path.split('/')[-2]
+        dataset = file_path.split('/')[-1].split('_')[1]
         for t in value:
-            if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
+            if dataset == '089907f8' or dataset == 'db9b8f04':
                 file_name = t[0].split('.')[1] + '_acc'  # i.e. 10_test_acc
             else:
                 file_name = t[0].split('/')[-1].split('_')[0] + '_test_acc'  # 2.3_test_acc
@@ -84,11 +92,12 @@ def modify_hyperparas(config, model_name, hyperparas):
     """
     modify hyper-parameters
     """
-    ds, ned, eed, hd, ep, fi, he, hi = hyperparas
+    ds, ned, eed, hd, ep, fi, he, hi, se = hyperparas
     if model_name != 'gcn' and model_name != 'gat':
         eed = ned
 
     config.general.id = config.model.encoder.model_name = model_name
+    config.general.seed = se
     config.dataset.data_path = ds
     config.model.embedding.dim = ned
     config.model.graph.edge_dim = eed
@@ -99,13 +108,13 @@ def modify_hyperparas(config, model_name, hyperparas):
     config.model.encoder.num_highway = hi
     print('*' * 100)
     print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
-          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}')
+          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, seed={se}')
     print('*' * 100)
 
     return config
 
 
-def analysis_draw(model_name, dataset):
+def analysis_draw(model_name, dataset, repe):
     """
     analyse results and draw the img
     :param model_name:
@@ -121,6 +130,9 @@ def analysis_draw(model_name, dataset):
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
+            if repe:
+                file_dir = os.path.join(file_dir, 'repeat')
+
             file_names = os.listdir(file_dir)
             csv_datas = [pd.read_csv(os.path.join(file_dir, cf)) for cf in file_names]
 
@@ -140,60 +152,76 @@ def analysis_draw(model_name, dataset):
                 opt_idx_10 = csv_data_[col_name[-1]].idxmax()
                 df_10 = df_10.append(csv_data_.iloc[opt_idx_10], ignore_index=True)
 
-            # min_val_loss
-            min_idx = df_min[col_name[1]].astype(float).idxmin()  # corresponding to particular hyperparas
-            min_val_loss = df_min.iloc[min_idx, 1]
-            test_acc_min = df_min.iloc[min_idx, 4:].values
-            # max_val_acc
-            max_idx = df_max[col_name[2]].astype(float).idxmax()
-            max_val_acc = df_max.iloc[max_idx, 2]
-            test_acc_max = df_max.iloc[max_idx, 4:].values
-            # max_mean_test_acc
-            max_idx_mean = df_mean[col_name[3]].astype(float).idxmax()
-            max_mean_test_acc = df_mean.iloc[max_idx_mean, 3]
-            test_acc_max_mean = df_mean.iloc[max_idx_mean, 4:].values
-            # max_10_test_acc
-            max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
-            max_10_test_acc = df_10.iloc[max_idx_10, -1]
-            test_acc_best_10 = df_10.iloc[max_idx_10, 4:].values
+            if repe:
+                # min_val_loss
+                df_mean_min, df_std_min = df_min.values.mean(axis=0), df_min.values.std(axis=0)
+                mean_min_val_loss, std_min_val_loss = df_mean_min[1], df_std_min[1]
+                mean_test_acc_min, std_test_acc_min = df_mean_min[4:], df_std_min[4:]
+                # max_val_acc
+                df_mean_max, df_std_max = df_max.values.mean(axis=0), df_max.values.std(axis=0)
+                mean_max_val_acc, std_max_val_acc = df_mean_max[2], df_std_max[2]
+                mean_test_acc_max, std_test_acc_max = df_mean_max[4:], df_std_max[4:]
+                # max_mean_test_acc
+                df_mean_max_mean, df_std_max_mean = df_mean.values.mean(axis=0), df_mean.values.std(axis=0)
+                mean_max_mean_test_acc, std_max_mean_test_acc = df_mean_max_mean[3], df_std_max_mean[3]
+                mean_test_acc_max_mean, std_test_acc_max_mean = df_mean_max_mean[4:], df_std_max_mean[4:]
+                # max_10_test_acc
+                df_mean_max_10, df_std_max_10 = df_10.values.mean(axis=0), df_10.values.std(axis=0)
+                mean_max_10_test_acc, std_max_10_test_acc = df_mean_max_10[-1], df_std_max_10[-1]
+                mean_test_acc_best_10, std_test_acc_best_10 = df_mean_max_10[4:], df_std_max_10[4:]
 
-            log_dir = os.path.join(path, 'logs', model, f'{ds}_{model}.txt')
-            with open(log_dir, 'w') as fl:
-                print(f'Based on minimum val_loss={min_val_loss}: {file_names[min_idx].split(".")[0]}', file=fl)
-                print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]), file=fl)
-                print(file=fl)
-                print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}', file=fl)
-                print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
-                print(file=fl)
-                print(f'Based on maximum mean_test_acc={max_mean_test_acc}: {file_names[max_idx_mean].split(".")[0]}', file=fl)
-                print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
-                print(file=fl)
-                print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}', file=fl)
-                print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
+                log_dir = os.path.join(path, 'logs', model, f're_{ds}_{model}.txt')
+                with open(log_dir, 'w') as fr:
+                    print(f'Based on minimum val_loss={mean_min_val_loss}: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
+                    print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_min, df_std_min)]), file=fr)
+                    print(file=fr)
+                    print(f'Based on maximum val_acc={mean_max_val_acc}: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
+                    print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max, df_std_max)]), file=fr)
+                    print(file=fr)
+                    print(f'Based on maximum mean_test_acc={mean_max_mean_test_acc}: {file_names[0].split("=")[-1].split(".")[0]}',
+                        file=fr)
+                    print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max_mean, df_std_max_mean)]), file=fr)
+                    print(file=fr)
+                    print(f'Based on maximum 10_test_acc={mean_max_10_test_acc}: {file_names[0].split("=")[-1].split(".")[0]}',
+                          file=fr)
+                    print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max_10, df_std_max_10)]), file=fr)
 
-            best_min_val_loss.append(test_acc_min)
-            best_max_val_acc.append(test_acc_max)
-            best_max_mean_test_acc.append(test_acc_max_mean)
-            best_max_10_test_acc.append(test_acc_best_10)
+            else:
+                # min_val_loss
+                min_idx = df_min[col_name[1]].astype(float).idxmin()  # corresponding to particular hyperparas
+                min_val_loss = df_min.iloc[min_idx, 1]
+                test_acc_min = df_min.iloc[min_idx, 4:].values
+                # max_val_acc
+                max_idx = df_max[col_name[2]].astype(float).idxmax()
+                max_val_acc = df_max.iloc[max_idx, 2]
+                test_acc_max = df_max.iloc[max_idx, 4:].values
+                # max_mean_test_acc
+                max_idx_mean = df_mean[col_name[3]].astype(float).idxmax()
+                max_mean_test_acc = df_mean.iloc[max_idx_mean, 3]
+                test_acc_max_mean = df_mean.iloc[max_idx_mean, 4:].values
+                # max_10_test_acc
+                max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
+                max_10_test_acc = df_10.iloc[max_idx_10, -1]
+                test_acc_best_10 = df_10.iloc[max_idx_10, 4:].values
 
-            # x = col_name[4:]
-            # plt.figure()
-            # plt.plot(x, test_acc_min)
-            # plt.xticks(rotation=45)
-            # plt.title(f'best_min_val_loss')
-            # plt.savefig(os.path.join(img_dir, f'best_min_val_loss.jpg'))
-            #
-            # plt.figure()
-            # plt.plot(x, test_acc_max)
-            # plt.xticks(rotation=45)
-            # plt.title(f'best_max_val_acc')
-            # plt.savefig(os.path.join(img_dir, f'best_max_val_acc.jpg'))
-            #
-            # plt.figure()
-            # plt.plot(x, test_acc_best_10)
-            # plt.xticks(rotation=45)
-            # plt.title(f'best_max_10_test_acc')
-            # plt.savefig(os.path.join(img_dir, f'best_max_10_test_acc.jpg'))
+                log_dir = os.path.join(path, 'logs', model, f'{ds}_{model}.txt')
+                with open(log_dir, 'w') as fl:
+                    print(f'Based on minimum val_loss={min_val_loss}: {file_names[min_idx].split(".")[0]}', file=fl)
+                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]), file=fl)
+                    print(file=fl)
+                    print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}', file=fl)
+                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
+                    print(file=fl)
+                    print(f'Based on maximum mean_test_acc={max_mean_test_acc}: {file_names[max_idx_mean].split(".")[0]}', file=fl)
+                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
+                    print(file=fl)
+                    print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}', file=fl)
+                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
+
+                best_min_val_loss.append(test_acc_min)
+                best_max_val_acc.append(test_acc_max)
+                best_max_mean_test_acc.append(test_acc_max_mean)
+                best_max_10_test_acc.append(test_acc_best_10)
 
         img_dir = os.path.join(path, 'plots', ds)
         if not os.path.exists(img_dir):
@@ -223,14 +251,16 @@ def draw_img(x, ys, model, img_dir, name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
-    parser.add_argument('--m', nargs='+', default="graph_lstm", help='model name')
+    parser.add_argument('--m', nargs='+', type=str, default="graph_lstm", help='model name')
     parser.add_argument('--ds', nargs='+', type=str, default="data_089907f8", help='dataset')
+    parser.add_argument('--re', action='store_true', help='for error bar depict, repeat or not')
     args = parser.parse_args()
 
     model_name = args.m
     dataset = args.ds
+    repe = args.re
 
-    analysis_draw(model_name, dataset)
+    analysis_draw(model_name, dataset, repe)
 
 
 # python codes/analysis_res.py --m gat gcn graph_lstm graph_rnn graph_gru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
