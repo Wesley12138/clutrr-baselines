@@ -240,9 +240,9 @@ def analysis_draw(model_name, dataset, repe, ty):
         img_dir = os.path.join(path, 'plots', ds)
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
-        else:
-            shutil.rmtree(img_dir)
-            os.makedirs(img_dir)
+        # else:
+        #     shutil.rmtree(img_dir)
+        #     os.makedirs(img_dir)
 
         if not repe:
             x = col_name[4:]
@@ -281,7 +281,7 @@ def analysis_draw(model_name, dataset, repe, ty):
             ax.set_ylabel('Test Accuracy')
             plt.legend(loc=3)
             plt.savefig(os.path.join(img_dir, f'{name}.jpg'))
-            plt.show()
+            # plt.show()
 
     print('Analysis Complete!')
 
@@ -314,3 +314,4 @@ if __name__ == '__main__':
     analysis_draw(model_name, dataset, repe, ty)
 
 # python codes/analysis_res.py --m gat gcn graph_lstm graph_rnn graph_gru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
+# python codes/analysis_res.py --m gat gcn graph_lstm graph_rnn graph_gru graph_cnn graph_cnnh graph_boe --ds data_089907f8 --re --ty 1
