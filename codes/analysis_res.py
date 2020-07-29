@@ -132,6 +132,8 @@ def analysis_draw(model_name, dataset, repe, ty):
             log_dir = os.path.join(path, 'logs', 'repeat_res', ds)
             if not os.path.exists(log_dir):
                 os.makedirs(log_dir)
+            types = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
+                     '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
@@ -160,9 +162,6 @@ def analysis_draw(model_name, dataset, repe, ty):
                 # record the mean and std for each model
                 mean_df = df.agg('mean').values[1:]
                 std_df = df.agg('std').values[1:]
-                types = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
-                         '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
-
                 log_dir_ = os.path.join(log_dir, f'{ds}_{types[ty]}.txt')
                 with open(log_dir_, 'a') as fr:
                     print(f'Model: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
@@ -270,7 +269,7 @@ def analysis_draw(model_name, dataset, repe, ty):
             palette = sns.color_palette("muted", nb_colors)
             ax = sns.lineplot(x='x', y='y', hue='model', style='model', data=df_re, ci="sd",
                               palette=palette, dashes=False, sort=False)
-            name = f'{ds}_re_best_min_val_loss'
+            name = f'{ds}_{types[ty]}'
             ax.set_title(name)
             # 're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
             ax.set_xlim(x[0], x[-1])
