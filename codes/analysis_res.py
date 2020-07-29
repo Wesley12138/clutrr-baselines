@@ -127,57 +127,53 @@ def analysis_draw(model_name, dataset, repe, ty):
         best_max_val_acc = []
         best_max_mean_test_acc = []
         best_max_10_test_acc = []
-        df_re = pd.DataFrame(columns=['x', 'y', 'model'])
+        if repe:
+            df_re = pd.DataFrame(columns=['x', 'y', 'model'])
+            log_dir = os.path.join(path, 'logs', 'repeat_res', ds)
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
             if repe:
-                select_type = ty  # 1,2,3,4:  're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
+                select_type = ty  # 1,2,3,4
+                #  're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
                 file_dir = os.path.join(path, 'tmp', ds, select_type, 'logs', model, ds, 'repeat')
 
             file_names = glob.glob(os.path.join(file_dir, "*.csv"))  # find all csv files.  os.listdir(file_dir)
-            csv_datas = [pd.read_csv(os.path.join(file_dir, cf)) for cf in file_names]
+            csv_datas = [pd.read_csv(os.path.join(file_dir, cf)) for cf in file_names]  # 10 repeat df
 
             if repe:
-                for csv_data_ in csv_datas:
-                    x = csv_data_.columns[4:].values  # [2_test_acc, 3_test_acc, ...]
-                    y = csv_data_.iloc[:, 4:]
-                    for x_ in x:
-                        df_re = pd.concat([df_re, pd.DataFrame({'x': x_, 'y': y[x_], 'model': model})], ignore_index=True)
+                col_name = list(csv_datas[0].columns)
+                df = pd.DataFrame(columns=col_name)
+                if ty == '4':
+                    col = -1
+                else:
+                    col = int(ty)
+                for csv_data_ in csv_datas: # based on type to choose and put them together
+                    if ty == '1':
+                        opt_idx = csv_data_[col_name[col]].idxmin()
+                    else:
+                        opt_idx = csv_data_[col_name[col]].idxmax()
+                    df = df.append(csv_data_.iloc[opt_idx], ignore_index=True)
 
-            # elif balabala>0:
-            #     # min_val_loss
-            #     df_mean_min, df_std_min = df_min.values.mean(axis=0), df_min.values.std(axis=0)
-            #     mean_min_val_loss, std_min_val_loss = df_mean_min[1], df_std_min[1]
-            #     mean_test_acc_min, std_test_acc_min = df_mean_min[4:], df_std_min[4:]
-            #     # max_val_acc
-            #     df_mean_max, df_std_max = df_max.values.mean(axis=0), df_max.values.std(axis=0)
-            #     mean_max_val_acc, std_max_val_acc = df_mean_max[2], df_std_max[2]
-            #     mean_test_acc_max, std_test_acc_max = df_mean_max[4:], df_std_max[4:]
-            #     # max_mean_test_acc
-            #     df_mean_max_mean, df_std_max_mean = df_mean.values.mean(axis=0), df_mean.values.std(axis=0)
-            #     mean_max_mean_test_acc, std_max_mean_test_acc = df_mean_max_mean[3], df_std_max_mean[3]
-            #     mean_test_acc_max_mean, std_test_acc_max_mean = df_mean_max_mean[4:], df_std_max_mean[4:]
-            #     # max_10_test_acc
-            #     df_mean_max_10, df_std_max_10 = df_10.values.mean(axis=0), df_10.values.std(axis=0)
-            #     mean_max_10_test_acc, std_max_10_test_acc = df_mean_max_10[-1], df_std_max_10[-1]
-            #     mean_test_acc_best_10, std_test_acc_best_10 = df_mean_max_10[4:], df_std_max_10[4:]
-            #
-            #     log_dir = os.path.join(path, 'logs', model, f're_{ds}_{model}.txt')
-            #     with open(log_dir, 'w') as fr:
-            #         print(f'Based on minimum val_loss={mean_min_val_loss}: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
-            #         print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_min, df_std_min)]), file=fr)
-            #         print(file=fr)
-            #         print(f'Based on maximum val_acc={mean_max_val_acc}: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
-            #         print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max, df_std_max)]), file=fr)
-            #         print(file=fr)
-            #         print(f'Based on maximum mean_test_acc={mean_max_mean_test_acc}: {file_names[0].split("=")[-1].split(".")[0]}',
-            #             file=fr)
-            #         print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max_mean, df_std_max_mean)]), file=fr)
-            #         print(file=fr)
-            #         print(f'Based on maximum 10_test_acc={mean_max_10_test_acc}: {file_names[0].split("=")[-1].split(".")[0]}',
-            #               file=fr)
-            #         print(" ,".join([f"{n}: {v}({s})" for n, v, s in zip(col_name, df_mean_max_10, df_std_max_10)]), file=fr)
+                # record the mean and std for each model
+                mean_df = df.agg('mean').values[1:]
+                std_df = df.agg('std').values[1:]
+                types = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
+                         '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
+
+                log_dir_ = os.path.join(log_dir, f'{ds}_{types[ty]}.txt')
+                with open(log_dir_, 'a') as fr:
+                    print(f'Model: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
+                    print(", ".join([f"{n}: {v}({s})" for n, v, s in zip(col_name[1:], mean_df, std_df)]), file=fr)
+                    print(file=fr)
+
+                x = df.columns[4:].values  # [2_test_acc, 3_test_acc, ...]
+                y = df.iloc[:, 4:]
+                for x_ in x:  # transfer into suitable df form for lineplot
+                    df_re = pd.concat([df_re, pd.DataFrame({'x': x_, 'y': y[x_], 'model': model})], ignore_index=True)
+                    # [x, y, model]  e.g. [1_test, 10, lstm]
 
             else:
                 col_name = list(csv_datas[0].columns)
@@ -215,21 +211,21 @@ def analysis_draw(model_name, dataset, repe, ty):
 
                 log_dir = os.path.join(path, 'logs', model, f'{ds}_{model}.txt')
                 with open(log_dir, 'w') as fl:
-                    print(f'Based on minimum val_loss={min_val_loss}: {file_names[min_idx].split(".")[0]}', file=fl)
-                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]), file=fl)
+                    print(f'Based on minimum val_loss={min_val_loss}: '
+                          f'{file_names[min_idx].split("/")[-1].split(".")[0]}', file=fl)
+                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_min.iloc[min_idx].values)]), file=fl)
                     print(file=fl)
-                    print(f'Based on maximum val_acc={max_val_acc}: {file_names[max_idx].split(".")[0]}', file=fl)
-                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
+                    print(f'Based on maximum val_acc={max_val_acc}: '
+                          f'{file_names[max_idx].split("/")[-1].split(".")[0]}', file=fl)
+                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
                     print(file=fl)
-                    print(
-                        f'Based on maximum mean_test_acc={max_mean_test_acc}: {file_names[max_idx_mean].split(".")[0]}',
-                        file=fl)
-                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]),
-                          file=fl)
+                    print(f'Based on maximum mean_test_acc={max_mean_test_acc}: '
+                          f'{file_names[max_idx_mean].split("/")[-1].split(".")[0]}',file=fl)
+                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
                     print(file=fl)
-                    print(f'Based on maximum 10_test_acc={max_10_test_acc}: {file_names[max_idx_10].split(".")[0]}',
-                          file=fl)
-                    print(" ,".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
+                    print(f'Based on maximum 10_test_acc={max_10_test_acc}: '
+                          f'{file_names[max_idx_10].split("/")[-1].split(".")[0]}', file=fl)
+                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
 
                 best_min_val_loss.append(test_acc_min)
                 best_max_val_acc.append(test_acc_max)
@@ -257,31 +253,34 @@ def analysis_draw(model_name, dataset, repe, ty):
             sns.set_style("white")
             sns.set_style("ticks")
             plt.grid()
-            dash_styles = ["",
-                        (4, 1.5),
-                        (1, 1),
-                        (3, 1, 1.5, 1),
-                        (5, 1, 1, 1),
-                        (5, 1, 2, 1, 2, 1),
-                        (2, 2, 3, 1.5),
-                        (1, 2.5, 3, 1.2)]  #,
-                        # (2, 2, 3, 1),
-                        # (1, 1, 3, 1),
-                        # (4, 3, 2, 1),
-                        # (3, 1.5, 3.5, 2)]
+            # dash_styles = ["",
+            #             (4, 1.5),
+            #             (1, 1),
+            #             (3, 1, 1.5, 1),
+            #             (5, 1, 1, 1),
+            #             (5, 1, 2, 1, 2, 1),
+            #             (2, 2, 3, 1.5),
+            #             (1, 2.5, 3, 1.2)]  #,
+            #             # (2, 2, 3, 1),
+            #             # (1, 1, 3, 1),
+            #             # (4, 3, 2, 1),
+            #             # (3, 1.5, 3.5, 2)]
             df_re['y'] = df_re['y'].astype('float')
             nb_colors = df_re['model'].nunique()
             palette = sns.color_palette("muted", nb_colors)
-            ax = sns.lineplot(x='x', y='y', hue='model', style='model', data=df_re, ci="sd", palette=palette, dashes=dash_styles, sort=False)
+            ax = sns.lineplot(x='x', y='y', hue='model', style='model', data=df_re, ci="sd",
+                              palette=palette, dashes=False, sort=False)
             name = f'{ds}_re_best_min_val_loss'
-            ax.set_title(name)  # 're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
-            ax.set_xticklabels(x, rotation=15, horizontalalignment='right')
+            ax.set_title(name)
+            # 're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
+            ax.set_xlim(x[0], x[-1])
+            ax.set_xticklabels(x, rotation=15)  # , horizontalalignment='right'
             ax.set_xlabel('Test Story Length')
             ax.set_ylim(0, 1)
             ax.set_ylabel('Test Accuracy')
             plt.legend(loc=3)
             plt.savefig(os.path.join(img_dir, f'{name}.jpg'))
-            # plt.show()
+            plt.show()
 
     print('Analysis Complete!')
 
