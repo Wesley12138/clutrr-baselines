@@ -15,7 +15,9 @@ def argument_parser():
     parser.add_argument('--he', type=int, default=3, help='num of heads')
     parser.add_argument('--hi', type=int, default=2, help='num of highway')
     parser.add_argument('--se', type=int, default=42, help='seed')
+    parser.add_argument('--mt', type=str, default="0", help='metric types: 1, 2, 3, 4')
 
     args = parser.parse_args()
 
-    return args.config_id, args.exp_id, (args.ds, args.ned, args.eed, args.hd, args.ep, args.fi, args.he, args.hi, args.se)
+    return args.config_id, args.exp_id, (args.ds, args.ned, args.eed, args.hd, args.ep,
+                                         args.fi, args.he, args.hi, args.se, args.mt)
