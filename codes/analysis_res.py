@@ -147,10 +147,11 @@ def analysis_draw(model_name, dataset, repe, mt):
                 file_dir = os.path.join(path, 'tmp', ds, mt, model)
 
             file_names = glob.glob(os.path.join(file_dir, "*.csv"))  # find all csv files.  os.listdir(file_dir)
+            assert len(file_names)!=0, f'No file in ds_{ds}_model_{model}'
             csv_datas = []
             for cf in file_names:
                 assert os.stat(cf).st_size != 0, f'{cf.split("/")[-1]}'
-                csv_datas.append(pd.read_csv(cf)) # all df under file_dir
+                csv_datas.append(pd.read_csv(cf))  # all df under file_dir
 
             if repe:
                 col_name = list(csv_datas[0].columns)
@@ -286,7 +287,7 @@ def analysis_draw(model_name, dataset, repe, mt):
             ax.set_ylabel('Test Accuracy')
             plt.legend(loc=3)
             plt.savefig(os.path.join(img_dir, f'{name}.jpg'))
-            plt.show()
+            # plt.show()
 
     print('Analysis Complete!')
 
