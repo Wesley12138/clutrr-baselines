@@ -119,7 +119,7 @@ if __name__ == '__main__':
     # analysis_draw(model_name, hyperparas[0])
 
 # normal train
-# PYTHONPATH=. python3 codes/app/main.py --config_id gat --ds data_523348e6 --ned 10 --eed 1000 --hd 0 --ep 100 --fi 0 --he 8 --hi 0
+# PYTHONPATH=. python3 codes/app/main.py --config_id gat --ds data_7c5b0e70 --ned 10 --eed 1500 --hd 0 --ep 100 --fi 0 --he 9 --hi 0
 
 # for repeat analysis
 # PYTHONPATH=. python3 codes/app/main.py --config_id gat --ds data_523348e6 --ned 10 --eed 1000 --hd 0 --ep 100 --fi 0 --he 8 --hi 0 --se 1 --mt 1

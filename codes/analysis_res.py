@@ -138,6 +138,7 @@ def analysis_draw(model_name, dataset, repe, mt):
             #     os.makedirs(log_dir)
             metircs = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
                      '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
+            res_df = []  # log in table
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
@@ -147,7 +148,7 @@ def analysis_draw(model_name, dataset, repe, mt):
                 file_dir = os.path.join(path, 'tmp', ds, mt, model)
 
             file_names = glob.glob(os.path.join(file_dir, "*.csv"))  # find all csv files.  os.listdir(file_dir)
-            assert len(file_names)!=0, f'No file in ds_{ds}_model_{model}'
+            assert len(file_names)!=0, f'No file under {file_dir}'
             csv_datas = []
             for cf in file_names:
                 assert os.stat(cf).st_size != 0, f'{cf.split("/")[-1]}'
@@ -173,8 +174,13 @@ def analysis_draw(model_name, dataset, repe, mt):
                 log_dir_ = os.path.join(log_dir, f'{ds}_{metircs[mt]}.txt')
                 with open(log_dir_, 'a') as fr:
                     print(f'Model: {file_names[0].split("=")[-1].split(".")[0]}', file=fr)
-                    print(", ".join([f"{n}: {v}({s})" for n, v, s in zip(col_name[1:], mean_df, std_df)]), file=fr)
+                    print(", ".join([f"{n}: {v}(\u00B1{s})" for n, v, s in zip(col_name[1:], mean_df, std_df)]), file=fr)
                     print(file=fr)
+
+                # record in table
+                for i in range(len(mean_df)):
+                    res_df.append(f'{round(mean_df[i], 4)} (\u00B1{round(std_df[i], 4)})')
+
 
                 x = df.columns[4:].values  # [2_test_acc, 3_test_acc, ...]
                 y = df.iloc[:, 4:]
@@ -185,7 +191,7 @@ def analysis_draw(model_name, dataset, repe, mt):
             else:
                 col_name = list(csv_datas[0].columns)
                 df_min = df_max = df_mean = df_10 = pd.DataFrame(columns=col_name)
-                for csv_data_ in csv_datas:
+                for i, csv_data_ in enumerate(csv_datas):
                     # min val_loss
                     opt_idx_min = csv_data_[col_name[1]].idxmin()
                     df_min = df_min.append(csv_data_.iloc[opt_idx_min], ignore_index=True)
@@ -197,6 +203,7 @@ def analysis_draw(model_name, dataset, repe, mt):
                     df_mean = df_mean.append(csv_data_.iloc[opt_idx_mean], ignore_index=True)
                     # max_10_test_acc
                     opt_idx_10 = csv_data_[col_name[-1]].idxmax()
+                    # assert isinstance(opt_idx_10, int), f'{ds}_{model}_{file_names[i]}'
                     df_10 = df_10.append(csv_data_.iloc[opt_idx_10], ignore_index=True)
 
                 # min_val_loss
@@ -256,6 +263,12 @@ def analysis_draw(model_name, dataset, repe, mt):
             # plt.show()
 
         else:
+            # log table
+            df_table = pd.DataFrame(np.array(res_df).reshape(len(model_name), -1), index=model_name, columns=col_name[1:])
+            table_path = os.path.join(log_dir, f'{ds}_{metircs[mt]}.csv')
+            df_table.to_csv(table_path)
+
+            # draw
             plt.figure(figsize=(8, 7))
             sns.set_style("white")
             sns.set_style("ticks")
@@ -273,10 +286,10 @@ def analysis_draw(model_name, dataset, repe, mt):
             #             # (4, 3, 2, 1),
             #             # (3, 1.5, 3.5, 2)]
             df_re['y'] = df_re['y'].astype('float')
-            nb_colors = df_re['model'].nunique()
-            palette = sns.color_palette("muted", nb_colors)
+            # nb_colors = df_re['model'].nunique()
+            # palette = sns.color_palette("muted", nb_colors)
             ax = sns.lineplot(x='x', y='y', hue='model', style='model', data=df_re, ci="sd",
-                              palette=palette, dashes=False, sort=False)
+                              dashes=False, sort=False)  # palette=palette,
             name = f'{ds}_{metircs[mt]}'
             ax.set_title(name)
             # 're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
@@ -293,9 +306,17 @@ def analysis_draw(model_name, dataset, repe, mt):
 
 
 def draw_img(x, ys, model, img_dir, name):
+    dash_styles = [(4, 1.5),
+                   (1, 1),
+                   (3, 1, 1.5, 1),
+                   (5, 1, 1, 1),
+                   (5, 1, 2, 1, 2, 1),
+                   (2, 2, 3, 1.5),
+                   (1, 2.5, 3, 1.2),
+                   (2, 2, 3, 1)]
     plt.figure()
-    for y, m in zip(ys, model):
-        plt.plot(x, y, label=m)
+    for y, m, d in zip(ys, model, dash_styles):
+        plt.plot(x, y, label=m, dashes=d)
     plt.legend(loc=3)
     plt.xticks(rotation=15)
     plt.title(name)
