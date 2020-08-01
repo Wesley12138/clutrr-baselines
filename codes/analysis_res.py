@@ -131,6 +131,10 @@ def analysis_draw(model_name, dataset, repe, mt):
         best_max_val_acc = []
         best_max_mean_test_acc = []
         best_max_10_test_acc = []
+        df_mt1 = df_mt2 = pd.DataFrame()  # log in table, min_val_loss, max_val_acc
+        df_paras = []  # record paras for each model
+
+
         if repe:
             df_re = pd.DataFrame(columns=['x', 'y', 'model'])
             log_dir = os.path.join(path, 'tmp', ds, mt)   # log all models' result for each ds
@@ -138,7 +142,7 @@ def analysis_draw(model_name, dataset, repe, mt):
             #     os.makedirs(log_dir)
             metircs = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
                      '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
-            res_df = []  # log in table
+            res_df = []  # log in table, repeat
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
@@ -241,6 +245,12 @@ def analysis_draw(model_name, dataset, repe, mt):
                           f'{file_names[max_idx_10].split("/")[-1].split(".")[0]}', file=fl)
                     print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
 
+                # record in table
+                df_mt1 = df_mt1.append(df_min.iloc[min_idx, 1:], ignore_index=True)  # for min val loss
+                df_mt2 = df_mt2.append(df_min.iloc[max_idx, 1:], ignore_index=True)  # for max val acc
+                df_paras.append(file_names[min_idx].split("/")[-1].split(".")[0])
+                df_paras.append(file_names[max_idx].split("/")[-1].split(".")[0])
+
                 best_min_val_loss.append(test_acc_min)
                 best_max_val_acc.append(test_acc_max)
                 best_max_mean_test_acc.append(test_acc_max_mean)
@@ -255,6 +265,19 @@ def analysis_draw(model_name, dataset, repe, mt):
         #     os.makedirs(img_dir)
 
         if not repe:
+            # record in table
+            table_dir = os.path.join(path, 'logs', 'table')
+            if not os.path.exists(table_dir):
+                os.makedirs(table_dir)
+            df_mt1 = df_mt1[col_name[1:]]
+            df_mt1.index = model_name
+            df_mt1.to_csv(os.path.join(table_dir, f'{ds}_min_val_loss.csv'))
+            df_mt2 = df_mt2[col_name[1:]]
+            df_mt2.index = model_name
+            df_mt2.to_csv(os.path.join(table_dir, f'{ds}_max_val_acc.csv'))
+            df_paras = pd.DataFrame(np.array(df_paras).reshape(-1,2), index=model_name, columns=['min_val_loss', 'max_val_acc'])
+            df_paras.to_csv(os.path.join(table_dir, f'{ds}_paras.csv'))
+
             x = col_name[4:]
             draw_img(x, best_min_val_loss, model_name, img_dir, 'best_min_val_loss')
             draw_img(x, best_max_val_acc, model_name, img_dir, 'best_max_val_acc')
