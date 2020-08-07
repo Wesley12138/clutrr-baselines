@@ -159,14 +159,23 @@ class Seq2VecEncoderFactory:
             encoder = CnnHighwayEncoder(embedding_dim=embedding_dim, filters=filters, num_highway=num_highway,
                                         projection_dim=projection_dim, projection_location="after_cnn")
         elif name == 'rnn':
-            rnn = RNN(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            rnn = RNN(input_size=embedding_dim, hidden_size=hidden_size, batch_first=True)
             encoder = PytorchSeq2VecWrapper(rnn)
         elif name == 'lstm':
-            lstm = LSTM(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            lstm = LSTM(input_size=embedding_dim, hidden_size=hidden_size, batch_first=True)
             encoder = PytorchSeq2VecWrapper(lstm)
         elif name == 'gru':
-            gru = GRU(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            gru = GRU(input_size=embedding_dim, hidden_size=hidden_size, batch_first=True)
             encoder = PytorchSeq2VecWrapper(gru)
+        elif name == 'birnn':
+            birnn = RNN(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            encoder = PytorchSeq2VecWrapper(birnn)
+        elif name == 'bilstm':
+            bilstm = LSTM(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            encoder = PytorchSeq2VecWrapper(bilstm)
+        elif name == 'bigru':
+            bigru = GRU(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
+            encoder = PytorchSeq2VecWrapper(bigru)
         # elif name == 'intra':
         #     intra = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=output_dim, combination="1,2")
         #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,

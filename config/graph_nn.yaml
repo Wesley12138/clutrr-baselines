@@ -67,7 +67,7 @@ model:
     name: codes.baselines.graph_nn.graph_nn.Encoder  #codes.baselines.gat.edge_gat.GatEncoder
     hidden_dim: 100
     nlayers: 2
-    bidirectional: true
+    bidirectional: false
     dropout: 0
     pooling: maxpool # can be attention or maxpool
     num_filters: 1  # cnn
