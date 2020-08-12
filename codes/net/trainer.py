@@ -40,6 +40,8 @@ class Trainer:
             self.criteria = nn.CrossEntropyLoss()
         elif loss_criteria == 'NLL':
             self.criteria = nn.NLLLoss()
+        elif loss_criteria == 'BCE':
+            self.criteria = nn.BCELoss()
         else:
             raise NotImplementedError("Provided loss criteria not implemented")
         self.tf_ratio = model_config.tf_ratio
@@ -105,7 +107,13 @@ class Trainer:
         logits, attn, hidden_rep = self.decoder_model(batch, step_batch)
         if logits.dim() > 2:
             logits = logits.squeeze(1)
-        loss = self.criteria(logits, batch.target.squeeze(1))
+        if self.model_config.loss_criteria == 'BCE':
+            labels = torch.zeros_like(logits)
+            for i, t in enumerate(batch.target.squeeze(1)):
+                labels[i, t] = 1
+            loss = self.criteria(logits, labels)
+        else:
+            loss = self.criteria(logits, batch.target.squeeze(1))
         # generate prediction
         topv, topi = logits.data.topk(1)
         next_words = topi.squeeze(1)

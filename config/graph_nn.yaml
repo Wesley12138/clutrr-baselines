@@ -10,7 +10,6 @@ general:
   mode: train # can be train or infer
 dataset:
   base_url: http://localhost:9300/
-#  data_path: data_tiny
   data_path: data_089907f8
   save_path: dtp.pkl
   load_save_path: false
