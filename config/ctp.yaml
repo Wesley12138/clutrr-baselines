@@ -56,7 +56,7 @@ model:
     entity_embedding_policy: fixed
     emb_type: random # can be one-hot or random, only for GAT
   optimiser:
-    name: adam
+    name: adagrad
     learning_rate: 0.001
     scheduler_type: exp
     scheduler_gamma: 1
@@ -72,14 +72,14 @@ model:
     pooling: maxpool # can be attention or maxpool
     slope: 1.0
     init_size: 1.0
-    init_type: 'random'
-    scoring_type: 'concat'
-#    hops_str: '2'
+    init_type: random
+    scoring_type: concat
+    hops_str: ['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
     k_max: 3
     max_depth: 2
-    tnorm_name: 'min'
-    gntp_R: None
-    reformulator_name: 'memory'
+    tnorm_name: min
+#    gntp_R: None
+    reformulator_name: memory
     tmp_name: codes.models.gnn.encoder.GraphEncoder
     invalidate_embeddings: True
   decoder:

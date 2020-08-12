@@ -7,7 +7,7 @@ from codes.net.base_net import Net
 import torch.nn.functional as F
 
 from codes.baselines.CTP.kb import NeuralKB
-from codes.baselines.CTP.model import Hoppy
+# from codes.baselines.CTP.model import Hoppy
 
 from codes.reformulators import BaseReformulator
 from codes.reformulators import StaticReformulator
@@ -442,11 +442,11 @@ class CtpEncoder(Net):
         init_size = model_config.encoder.init_size
         init_type = model_config.encoder.init_type
         scoring_type = model_config.encoder.scoring_type
-        hops_str = ['2', '2', '2', '2']
+        hops_str = model_config.encoder.hops_str   # ['2', '2', '2', '2']
         k_max = model_config.encoder.k_max
         max_depth = model_config.encoder.max_depth
         tnorm_name = model_config.encoder.tnorm_name
-        gntp_R = model_config.encoder.gntp_R
+        gntp_R = None
 
         kernel = GaussianKernel(slope=slope)  # slope=1.0
         self.embedding = torch.nn.Embedding(num_embeddings=self.model_config.unique_nodes,
@@ -456,10 +456,10 @@ class CtpEncoder(Net):
         torch.nn.init.xavier_uniform_(self.embedding.weight)
         self.embedding.weight.data *= init_size  # init_size=1.0
 
-        self.edge_embedding = torch.nn.Embedding(model_config.edge_types, model_config.graph.edge_dim)
+        self.edge_embedding = torch.nn.Embedding(model_config.target_size, model_config.graph.edge_dim)
         # if init_type in {'uniform'}:
         #     torch.nn.init.uniform_(self.edge_embedding.weight, -1.0, 1.0)
-        # self.edge_embedding.weight.data *= init_size  # init_size=1.0
+        self.edge_embedding.weight.data *= init_size  # init_size=1.0
         torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
         model = NeuralKB(kernel=kernel, scoring_type=scoring_type)  # kernel=GaussianKernel()  scoring_type='concat'
         self.memory = None
@@ -480,7 +480,7 @@ class CtpEncoder(Net):
         r = [i.float() for i in r]
         s = [i[:, 0].unsqueeze(-1) for i in chunks_index]  # s1;s2
         o = [i[:, 1].unsqueeze(-1) for i in chunks_index]  # o1;o2
-        scores = torch.zeros(len(r),self.model_config.edge_types)   # ,self.model_config.classes.len()  Bx22
+        scores = torch.zeros(len(r), self.model_config.target_size)   # Bx22
         for i in range(len(r)):
             s_emb = self.embedding(s[i].long()).squeeze(1)
             r_emb = self.edge_embedding(r[i].long()).squeeze(1)
@@ -491,9 +491,9 @@ class CtpEncoder(Net):
             embeddings = self.embedding(node_lst)  # 获得story里人名（小->大） 3x50
 
             query = self.embedding(batch.query_edge.squeeze(1)[i,:].squeeze(0))  # 2x50
-            arg1_emb, arg2_emb = query[0,:].repeat([self.model_config.edge_types, 1]), query[1,:].repeat([self.model_config.edge_types, 1])  # 22x50, 22x50
-            # p_relation_lst = sorted(self.model_config.classes)  # ['aunt', 'brother', ...]  # Todo
-            p_relation_lst = [rela for rela in range(self.model_config.edge_types)]  # [0, 1, ..., 21]
+            arg1_emb = query[0,:].repeat([self.model_config.target_size, 1])  # 22x50
+            arg2_emb = query[1,:].repeat([self.model_config.target_size, 1])  # 22x50
+            p_relation_lst = [rela for rela in range(self.model_config.target_size)]  # [0, 1, ..., 21]
             p_relation_lst = torch.from_numpy(np.array(p_relation_lst, dtype=np.int64))
             rel_emb = self.edge_embedding(p_relation_lst)   # 22x50
             scores[i, :] = self.hoppy.score(rel_emb, arg1_emb, arg2_emb, facts, embeddings)   # 22

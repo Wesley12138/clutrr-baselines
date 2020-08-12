@@ -60,6 +60,11 @@ class Trainer:
                                              lr=self.model_config.optimiser.learning_rate,
                                              weight_decay=self.model_config.optimiser.l2_penalty
                                              ))
+            elif (self.model_config.optimiser.name == "adagrad"):
+                optimizers.append(optim.Adagrad(model_params,
+                                             lr=self.model_config.optimiser.learning_rate,
+                                             weight_decay=self.model_config.optimiser.l2_penalty
+                                             ))
             elif (self.model_config.optimiser.name == 'sgd'):
                 optimizers.append(optim.SGD(model_params, lr=self.model_config.optimiser.learning_rate,
                                             weight_decay=self.model_config.optimiser.l2_penalty))
