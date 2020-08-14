@@ -140,8 +140,8 @@ def analysis_draw(model_name, dataset, repe, mt):
             log_dir = os.path.join(path, 'tmp', ds, mt)   # log all models' result for each ds
             # if not os.path.exists(log_dir):
             #     os.makedirs(log_dir)
-            metircs = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc',
-                     '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
+            metircs = {'1': 're_best_min_val_loss', '2': 're_best_max_val_acc'}
+                     # '3': 're_best_max_mean_test_acc', '4': 're_best_max_10_test_acc'}
             res_df = []  # log in table, repeat
 
         for model in model_name:
@@ -202,13 +202,13 @@ def analysis_draw(model_name, dataset, repe, mt):
                     # max_val_acc
                     opt_idx_max = csv_data_[col_name[2]].idxmax()
                     df_max = df_max.append(csv_data_.iloc[opt_idx_max], ignore_index=True)
-                    # max_mean_test_acc
-                    opt_idx_mean = csv_data_[col_name[3]].idxmax()
-                    df_mean = df_mean.append(csv_data_.iloc[opt_idx_mean], ignore_index=True)
-                    # max_10_test_acc
-                    opt_idx_10 = csv_data_[col_name[-1]].idxmax()
-                    # assert isinstance(opt_idx_10, int), f'{ds}_{model}_{file_names[i]}'
-                    df_10 = df_10.append(csv_data_.iloc[opt_idx_10], ignore_index=True)
+                    # # max_mean_test_acc
+                    # opt_idx_mean = csv_data_[col_name[3]].idxmax()
+                    # df_mean = df_mean.append(csv_data_.iloc[opt_idx_mean], ignore_index=True)
+                    # # max_10_test_acc
+                    # opt_idx_10 = csv_data_[col_name[-1]].idxmax()
+                    # # assert isinstance(opt_idx_10, int), f'{ds}_{model}_{file_names[i]}'
+                    # df_10 = df_10.append(csv_data_.iloc[opt_idx_10], ignore_index=True)
 
                 # min_val_loss
                 min_idx = df_min[col_name[1]].astype(float).idxmin()  # corresponding to particular hyperparas
@@ -218,14 +218,14 @@ def analysis_draw(model_name, dataset, repe, mt):
                 max_idx = df_max[col_name[2]].astype(float).idxmax()
                 max_val_acc = df_max.iloc[max_idx, 2]
                 test_acc_max = df_max.iloc[max_idx, 4:].values
-                # max_mean_test_acc
-                max_idx_mean = df_mean[col_name[3]].astype(float).idxmax()
-                max_mean_test_acc = df_mean.iloc[max_idx_mean, 3]
-                test_acc_max_mean = df_mean.iloc[max_idx_mean, 4:].values
-                # max_10_test_acc
-                max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
-                max_10_test_acc = df_10.iloc[max_idx_10, -1]
-                test_acc_best_10 = df_10.iloc[max_idx_10, 4:].values
+                # # max_mean_test_acc
+                # max_idx_mean = df_mean[col_name[3]].astype(float).idxmax()
+                # max_mean_test_acc = df_mean.iloc[max_idx_mean, 3]
+                # test_acc_max_mean = df_mean.iloc[max_idx_mean, 4:].values
+                # # max_10_test_acc
+                # max_idx_10 = df_10[col_name[-1]].astype(float).idxmax()
+                # max_10_test_acc = df_10.iloc[max_idx_10, -1]
+                # test_acc_best_10 = df_10.iloc[max_idx_10, 4:].values
 
                 log_dir = os.path.join(path, 'logs', model, f'{ds}_{model}.txt')
                 with open(log_dir, 'w') as fl:
@@ -236,14 +236,14 @@ def analysis_draw(model_name, dataset, repe, mt):
                     print(f'Based on maximum val_acc={max_val_acc}: '
                           f'{file_names[max_idx].split("/")[-1].split(".")[0]}', file=fl)
                     print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_max.iloc[max_idx].values)]), file=fl)
-                    print(file=fl)
-                    print(f'Based on maximum mean_test_acc={max_mean_test_acc}: '
-                          f'{file_names[max_idx_mean].split("/")[-1].split(".")[0]}',file=fl)
-                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
-                    print(file=fl)
-                    print(f'Based on maximum 10_test_acc={max_10_test_acc}: '
-                          f'{file_names[max_idx_10].split("/")[-1].split(".")[0]}', file=fl)
-                    print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
+                    # print(file=fl)
+                    # print(f'Based on maximum mean_test_acc={max_mean_test_acc}: '
+                    #       f'{file_names[max_idx_mean].split("/")[-1].split(".")[0]}',file=fl)
+                    # print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_mean.iloc[max_idx_mean].values)]), file=fl)
+                    # print(file=fl)
+                    # print(f'Based on maximum 10_test_acc={max_10_test_acc}: '
+                    #       f'{file_names[max_idx_10].split("/")[-1].split(".")[0]}', file=fl)
+                    # print(", ".join([f"{n}: {v}" for n, v in zip(col_name, df_10.iloc[max_idx_10].values)]), file=fl)
 
                 # record in table
                 df_mt1 = df_mt1.append(df_min.iloc[min_idx, 1:], ignore_index=True)  # for min val loss
@@ -253,8 +253,8 @@ def analysis_draw(model_name, dataset, repe, mt):
 
                 best_min_val_loss.append(test_acc_min)
                 best_max_val_acc.append(test_acc_max)
-                best_max_mean_test_acc.append(test_acc_max_mean)
-                best_max_10_test_acc.append(test_acc_best_10)
+                # best_max_mean_test_acc.append(test_acc_max_mean)
+                # best_max_10_test_acc.append(test_acc_best_10)
 
         # plot img
         img_dir = os.path.join(path, 'plots', ds)
@@ -281,8 +281,8 @@ def analysis_draw(model_name, dataset, repe, mt):
             x = col_name[4:]
             draw_img(x, best_min_val_loss, model_name, img_dir, 'best_min_val_loss')
             draw_img(x, best_max_val_acc, model_name, img_dir, 'best_max_val_acc')
-            draw_img(x, best_max_mean_test_acc, model_name, img_dir, 'best_max_mean_test_acc')
-            draw_img(x, best_max_10_test_acc, model_name, img_dir, 'best_max_10_test_acc')
+            # draw_img(x, best_max_mean_test_acc, model_name, img_dir, 'best_max_mean_test_acc')
+            # draw_img(x, best_max_10_test_acc, model_name, img_dir, 'best_max_10_test_acc')
             # plt.show()
 
         else:
@@ -336,7 +336,10 @@ def draw_img(x, ys, model, img_dir, name):
                    (5, 1, 2, 1, 2, 1),
                    (2, 2, 3, 1.5),
                    (1, 2.5, 3, 1.2),
-                   (2, 2, 3, 1)]
+                   (2, 2, 3, 1),
+                   (1, 1, 3, 1),
+                   (4, 3, 2, 1),
+                   (3, 1.5, 3.5, 2)]
     plt.figure()
     for y, m, d in zip(ys, model, dash_styles):
         plt.plot(x, y, label=m, dashes=d)

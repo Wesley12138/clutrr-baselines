@@ -114,7 +114,7 @@ def run_experiment(config, exp, resume=False):
     config.log.logger.info("Loading testing data")
     data_util.process_test_data(base_path, config.dataset.test_files)
     config.model.max_word_length = data_util.max_word_length
-    config.model.edge_types = len(data_util.unique_edge_dict)
+    config.model.edge_types = len(data_util.unique_edge_dict)   # story's
     config.model.unique_nodes = len(data_util.unique_nodes)
     config.model.entity_lst = data_util.entity_lst
     # fix
@@ -285,7 +285,7 @@ def _run_one_epoch(dataloader, experiment, mode, filename=''):
     log_batch_rel = []
     batch_size = len(dataloader)
 
-    for batch_idx, batch in enumerate(dataloader):
+    for batch_idx, batch in enumerate(tqdm(dataloader, ncols=50)):
         experiment.iteration_index[mode] += 1
         batch.config = experiment.config
         # batch.process_adj_mat()

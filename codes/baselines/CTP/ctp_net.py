@@ -19,6 +19,7 @@ from codes.reformulators import NTPReformulator
 from codes.kernels import BaseKernel, GaussianKernel
 # from codes.regularizers import N2, N3, Entropy
 import numpy as np
+from tqdm import tqdm
 
 class Hoppy(nn.Module):
     def __init__(self,
@@ -450,7 +451,7 @@ class CtpEncoder(Net):
 
         kernel = GaussianKernel(slope=slope)  # slope=1.0
         self.embedding = torch.nn.Embedding(num_embeddings=self.model_config.unique_nodes,
-                                            embedding_dim=self.model_config.embedding.dim)  # max_norm=1
+                                            embedding_dim=self.model_config.embedding.dim)  # num_embeddings=len(self.model_config.entity_lst)    max_norm=1
         # torch.nn.init.uniform_(self.embedding.weight, -1.0, 1.0)
         # self.embedding.requires_grad = False  # 阻止权重改变
         torch.nn.init.xavier_uniform_(self.embedding.weight)
@@ -459,14 +460,14 @@ class CtpEncoder(Net):
         self.edge_embedding = torch.nn.Embedding(model_config.target_size, model_config.graph.edge_dim)
         # if init_type in {'uniform'}:
         #     torch.nn.init.uniform_(self.edge_embedding.weight, -1.0, 1.0)
-        self.edge_embedding.weight.data *= init_size  # init_size=1.0
+        # self.edge_embedding.weight.data *= init_size  # init_size=1.0
         torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
         model = NeuralKB(kernel=kernel, scoring_type=scoring_type)  # kernel=GaussianKernel()  scoring_type='concat'
         self.memory = None
 
         encoder_factory = Encoder_hop()
-        hops_lst = [encoder_factory.make_hop(s, model_config) for s in
-                    hops_str]  # hops_str=['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
+        hops_lst = [encoder_factory.make_hop(s, model_config) for s in hops_str]
+        # hops_str=['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
         self.hoppy = Hoppy(model=model, k=k_max, depth=max_depth, tnorm_name=tnorm_name, hops_lst=hops_lst, R=gntp_R)
 
 
@@ -481,12 +482,14 @@ class CtpEncoder(Net):
         s = [i[:, 0].unsqueeze(-1) for i in chunks_index]  # s1;s2
         o = [i[:, 1].unsqueeze(-1) for i in chunks_index]  # o1;o2
         scores = torch.zeros(len(r), self.model_config.target_size)   # Bx22
+        # print(len(r))
         for i in range(len(r)):
+            # print(r[i])
             s_emb = self.embedding(s[i].long()).squeeze(1)
             r_emb = self.edge_embedding(r[i].long()).squeeze(1)
             o_emb = self.embedding(o[i].long()).squeeze(1)
             facts = [r_emb, s_emb, o_emb]   # list:3   [2x50 2x50 2x50]   即[r, s, o]的emb
-            node_lst = [node for node in range(batch.story_edge_no[i])]  # [0, 1, 2]
+            node_lst = [node for node in range(batch.geo_slices[i])]  # [0, 1, 2]   Todo: the name/idx of the nodes
             node_lst = torch.from_numpy(np.array(node_lst, dtype=np.int64))
             embeddings = self.embedding(node_lst)  # 获得story里人名（小->大） 3x50
 
