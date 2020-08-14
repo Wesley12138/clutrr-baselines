@@ -20,6 +20,7 @@ from zipfile import ZipFile
 from urllib.request import urlopen
 from codes.utils.bert_utils import BertLocalCache
 from codes.analysis_res import create_csv, save_to_csv
+from tqdm import tqdm
 import pdb
 import json
 import logging

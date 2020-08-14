@@ -19,7 +19,7 @@ from codes.reformulators import NTPReformulator
 from codes.kernels import BaseKernel, GaussianKernel
 # from codes.regularizers import N2, N3, Entropy
 import numpy as np
-from tqdm import tqdm
+
 
 class Hoppy(nn.Module):
     def __init__(self,
