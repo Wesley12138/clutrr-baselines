@@ -71,7 +71,7 @@ model:
     pooling: maxpool # can be attention or maxpool
     num_filters: 1  # cnn
     num_highway: 2  # cnnh
-    output_dim: 30  # cnn
+    output_dim: 30  # cnn, intra
     projection_dim: 16 # cnnh
     tmp_name: codes.models.gnn.encoder.GraphEncoder
     invalidate_embeddings: True

@@ -1,12 +1,15 @@
 from typing import Tuple, List, Callable, Optional
 
 import torch
-# from allennlp.modules.seq2seq_encoders import IntraSentenceAttentionEncoder
+from allennlp.modules.seq2seq_encoders import IntraSentenceAttentionEncoder
 from allennlp.modules.seq2vec_encoders import BagOfEmbeddingsEncoder
 from allennlp.modules.seq2vec_encoders import CnnEncoder
 from allennlp.modules.seq2vec_encoders import PytorchSeq2VecWrapper
 from allennlp.modules.seq2vec_encoders.cnn_highway_encoder import CnnHighwayEncoder
-# from allennlp.modules.similarity_functions import MultiHeadedSimilarity
+from allennlp.modules.similarity_functions import MultiHeadedSimilarity
+from allennlp.modules.augmented_lstm import AugmentedLstm
+from allennlp.modules.stacked_alternating_lstm import StackedAlternatingLstm
+from allennlp.modules.stacked_bidirectional_lstm import StackedBidirectionalLstm
 from torch import Tensor
 from torch.nn import Parameter, RNN, LSTM, GRU
 
@@ -94,12 +97,10 @@ class Decoder(Net):
             input_dim = model_config.encoder.output_dim * 2
         elif model_name == 'cnnh':
             input_dim = model_config.encoder.projection_dim * 2
+        elif model_name == 'birnn' or 'bigru' or 'bilstm' or 'intra' or 'multihead':
+            input_dim = model_config.encoder.hidden_dim * 4
         else: # rnn, lstm, gru
             input_dim = model_config.encoder.hidden_dim * 2
-            if model_config.encoder.bidirectional:
-                input_dim *= 2
-
-
 
         if model_config.embedding.emb_type == 'one-hot':
             input_dim = self.model_config.unique_nodes * 3
@@ -176,18 +177,24 @@ class Seq2VecEncoderFactory:
         elif name == 'bigru':
             bigru = GRU(input_size=embedding_dim, bidirectional=True, hidden_size=hidden_size, batch_first=True)
             encoder = PytorchSeq2VecWrapper(bigru)
-        # elif name == 'intra':
-        #     intra = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=output_dim, combination="1,2")
-        #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
-        #                                       hidden_size=hidden_size, batch_first=True))
-        #     encoder = lambda x, y: aggr(intra(x, y), y)
-        # elif name == 'multihead':
-        #     sim = MultiHeadedSimilarity(num_heads, embedding_dim)
-        #     multi = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=embedding_dim,
-        #                                           similarity_function=sim, num_attention_heads=num_heads,
-        #                                           combination="1+2")
-        #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim, bidirectional=True,
-        #                                       hidden_size=hidden_size, batch_first=True))
-        #     encoder = lambda x, y: aggr(multi(x, y), y)
+        elif name == 'intra':
+            intra = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=output_dim, combination="1,2")
+            aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
+                                              hidden_size=hidden_size, batch_first=True))
+            encoder = lambda x, y: aggr(intra(x, y), y)
+        elif name == 'multihead':
+            sim = MultiHeadedSimilarity(num_heads, embedding_dim)
+            multi = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=embedding_dim,
+                                                  similarity_function=sim, num_attention_heads=num_heads,
+                                                  combination="1+2")
+            aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim, bidirectional=True,
+                                              hidden_size=hidden_size, batch_first=True))
+            encoder = lambda x, y: aggr(multi(x, y), y)
+        elif name == 'auglstm':  # allennlp.common.checks.ConfigurationError: "inputs must be PackedSequence but got <class 'torch.Tensor'>"
+            encoder = AugmentedLstm(input_size=embedding_dim, hidden_size=hidden_size)
+        elif name == 'stalstm':  # allennlp.common.checks.ConfigurationError: "inputs must be PackedSequence but got <class 'torch.Tensor'>"
+            encoder = StackedAlternatingLstm(input_size=embedding_dim, hidden_size=hidden_size, num_layers=2)
+        elif name == 'stabilstm':  # allennlp.common.checks.ConfigurationError: "inputs must be PackedSequence but got <class 'torch.Tensor'>"
+            encoder = StackedBidirectionalLstm(input_size=embedding_dim, hidden_size=hidden_size, num_layers=2)
         assert encoder is not None
         return encoder
