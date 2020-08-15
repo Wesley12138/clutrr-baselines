@@ -42,12 +42,12 @@ def create_csv(config):
 
     if se == 42:
         file_path = os.path.join(file_dir,
-                                 f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop{"".join(hop)}_ref{ref}.csv')
+                                 f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop_{"".join(hop)}_ref_{ref}.csv')
         # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
         # Todo: too long name
     else:
         file_path = os.path.join(file_dir,
-                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop{"".join(hop)}_ref{ref}.csv')
+                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop_{"".join(hop)}_ref_{ref}.csv')
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
     if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
