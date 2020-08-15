@@ -28,6 +28,8 @@ def create_csv(config):
     he = config.model.graph.num_reads
     hi = config.model.encoder.num_highway
     mt = config.model.metric
+    hop = config.model.encoder.hops_str
+    ref = config.model.encoder.reformulator_name
 
     base_path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines'
@@ -40,11 +42,12 @@ def create_csv(config):
 
     if se == 42:
         file_path = os.path.join(file_dir,
-                                 f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}.csv')
+                                 f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop{"".join(hop)}_ref{ref}.csv')
         # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
+        # Todo: too long name
     else:
         file_path = os.path.join(file_dir,
-                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}.csv')
+                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop{"".join(hop)}_ref{ref}.csv')
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
     if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
@@ -95,7 +98,7 @@ def modify_hyperparas(config, model_name, hyperparas):
     """
     modify hyper-parameters
     """
-    ds, ned, eed, hd, ep, fi, he, hi, se, mt = hyperparas
+    ds, ned, eed, hd, ep, fi, he, hi, hop, ref, se, mt = hyperparas
     if model_name != 'gcn' and model_name != 'gat':
         eed = ned
 
@@ -110,9 +113,11 @@ def modify_hyperparas(config, model_name, hyperparas):
     config.model.graph.num_reads = he
     config.model.encoder.num_highway = hi
     config.model.metric = mt
+    config.model.encoder.hops_str = hop
+    config.model.encoder.reformulator_name = ref
     print('*' * 100)
     print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
-          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, seed={se}, metric={mt}')
+          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, hops_str={hop}, reformulator_name={ref}, seed={se}, metric={mt}')
     print('*' * 100)
 
     return config

@@ -74,7 +74,7 @@ model:
     init_size: 1.0
     init_type: random
     scoring_type: concat
-    hops_str: ['2', '2']
+    hops_str: ['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
     k_max: 3
     max_depth: 2
     tnorm_name: min
