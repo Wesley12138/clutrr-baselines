@@ -8,6 +8,27 @@ import argparse
 import shutil
 
 
+def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
+    if model_name == 'gat':
+        return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_he_{he}_ep_{ep}.csv'
+    elif model_name == 'gcn':
+        return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_ep_{ep}.csv'
+    elif model_name == 'graph_cnn':
+        return f'{dataset}_{model_name}_ed_{ned}_fi_{fi}_ep_{ep}.csv'
+    elif model_name == 'graph_cnnh':
+        return f'{dataset}_{model_name}_ed_{ned}_hi_{hi}_ep_{ep}.csv'
+    elif model_name == 'graph_boe':
+        return f'{dataset}_{model_name}_ed_{ned}_ep_{ep}.csv'
+    elif model_name in {'graph_rnn', 'graph_birnn', 'graph_lstm', 'graph_bilstm', 'graph_gru', 'graph_bigru', 'graph_intra'}:
+        return f'{dataset}_{model_name}_ed_{ned}_hd_{hd}_ep_{ep}.csv'
+    elif model_name in {'graph_stack', 'graph_multihead'}:
+        return f'{dataset}_{model_name}_ed_{ned}_hd_{hd}_he_{he}_ep_{ep}.csv'
+    elif model_name in {'ctp_s', 'ctp_l', 'ctp_a', 'ntp'} :
+        return f'{dataset}_{model_name}_ed_{ned}_hop_{"".join(hop)}_ep_{ep}.csv'
+    elif model_name == 'ctp_m':
+        return f'{dataset}_{model_name}_ed_{ned}_rules_{hd}_hop_{"".join(hop)}_ep_{ep}.csv'
+
+
 def create_csv(config):
     """
     create csv file for later data input
@@ -29,25 +50,21 @@ def create_csv(config):
     hi = config.model.encoder.num_highway
     mt = config.model.metric
     hop = config.model.encoder.hops_str
-    ref = config.model.encoder.reformulator_name
 
     base_path = os.path.dirname(os.path.realpath(__file__)).split('/codes')[0]
     # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines'
     file_dir = os.path.join(base_path, 'logs', model_name, dataset)
-    if se != 42:  # for repeat analysis
+    if mt:  # for repeat analysis
         file_dir = os.path.join(base_path, 'tmp', dataset, mt, model_name)
-
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)
 
-    if se == 42:
+    if mt:
         file_path = os.path.join(file_dir,
-                                 f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop_{"".join(hop)}_ref_{ref}.csv')
-        # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
-        # Todo: too long name
+                                 f'{se}=' + get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop))
     else:
-        file_path = os.path.join(file_dir,
-                                 f'{se}={dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop_{"".join(hop)}_ref_{ref}.csv')
+        file_path = os.path.join(file_dir, get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop))
+        # '/home/wesley/Documents/pycharm_workspace/clutrr-baselines/logs/graph_lstm/data_089907f8/data_089907f8_graph_lstm_ed_512_hd_32.csv'
 
     train_name = train_file.split('/')[-1].split('.csv')[0]  # i.e. 1.2,1.3_train
     if dataset == 'data_089907f8' or dataset == 'data_db9b8f04':
@@ -59,6 +76,7 @@ def create_csv(config):
     df = pd.DataFrame(columns=attr)
     df.set_index(['Epoch'], inplace=True)
     df.to_csv(file_path)
+    print(f'save csv to: {file_path}')
 
     return file_path
 
@@ -98,7 +116,7 @@ def modify_hyperparas(config, model_name, hyperparas):
     """
     modify hyper-parameters
     """
-    ds, ned, eed, hd, ep, fi, he, hi, hop, ref, se, mt = hyperparas
+    ds, ned, eed, hd, ep, fi, he, hi, hop, se, mt = hyperparas
     if model_name != 'gcn' and model_name != 'gat':
         eed = ned
 
@@ -114,16 +132,17 @@ def modify_hyperparas(config, model_name, hyperparas):
     config.model.encoder.num_highway = hi
     config.model.metric = mt
     config.model.encoder.hops_str = hop
-    config.model.encoder.reformulator_name = ref
+
     print('*' * 100)
     print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
-          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, hops_str={hop}, reformulator_name={ref}, seed={se}, metric={mt}')
+          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, hops_str={hop}, '
+          f'seed={se}, metric={mt}')
     print('*' * 100)
 
     return config
 
 
-def analysis_draw(model_name, dataset, repe, mt):
+def analysis_draw(model_name, dataset, mt):
     """
     analyse results and draw the img
     :param model_name:
@@ -139,8 +158,7 @@ def analysis_draw(model_name, dataset, repe, mt):
         df_mt1 = df_mt2 = pd.DataFrame()  # log in table, min_val_loss, max_val_acc
         df_paras = []  # record paras for each model
 
-
-        if repe:
+        if mt:
             df_re = pd.DataFrame(columns=['x', 'y', 'model'])
             log_dir = os.path.join(path, 'tmp', ds, mt)   # log all models' result for each ds
             # if not os.path.exists(log_dir):
@@ -151,9 +169,9 @@ def analysis_draw(model_name, dataset, repe, mt):
 
         for model in model_name:
             file_dir = os.path.join(path, 'logs', model, ds)
-            if repe:
-                # 1,2,3,4
-                #  're_best_min_val_loss'  're_best_max_val_acc'  're_best_max_mean_test_acc'  're_best_max_10_test_acc'
+            if mt:
+                # 1,2
+                #  're_best_min_val_loss'  're_best_max_val_acc'
                 file_dir = os.path.join(path, 'tmp', ds, mt, model)
 
             file_names = glob.glob(os.path.join(file_dir, "*.csv"))  # find all csv files.  os.listdir(file_dir)
@@ -163,13 +181,10 @@ def analysis_draw(model_name, dataset, repe, mt):
                 assert os.stat(cf).st_size != 0, f'{cf.split("/")[-1]}'
                 csv_datas.append(pd.read_csv(cf))  # all df under file_dir
 
-            if repe:
+            if mt:
                 col_name = list(csv_datas[0].columns)
                 df = pd.DataFrame(columns=col_name)
-                if mt == '4':
-                    col = -1
-                else:
-                    col = int(mt)
+                col = int(mt)
                 for csv_data_ in csv_datas: # based on type to choose and put them together
                     if mt == '1':
                         opt_idx = csv_data_[col_name[col]].idxmin()
@@ -269,7 +284,7 @@ def analysis_draw(model_name, dataset, repe, mt):
         #     shutil.rmtree(img_dir)
         #     os.makedirs(img_dir)
 
-        if not repe:
+        if not mt:
             # record in table
             table_dir = os.path.join(path, 'logs', 'table')
             if not os.path.exists(table_dir):
@@ -312,7 +327,7 @@ def analysis_draw(model_name, dataset, repe, mt):
             #             # (2, 2, 3, 1),
             #             # (1, 1, 3, 1),
             #             # (4, 3, 2, 1),
-            #             # (3, 1.5, 3.5, 2)]
+            #             # (3, 1.5, 3.5, 2)]  # 11 line styles
             df_re['y'] = df_re['y'].astype('float')
             # nb_colors = df_re['model'].nunique()
             # palette = sns.color_palette("muted", nb_colors)
@@ -344,7 +359,7 @@ def draw_img(x, ys, model, img_dir, name):
                    (2, 2, 3, 1),
                    (1, 1, 3, 1),
                    (4, 3, 2, 1),
-                   (3, 1.5, 3.5, 2)]
+                   (3, 1.5, 3.5, 2)]   # 11 line styles
     plt.figure()
     for y, m, d in zip(ys, model, dash_styles):
         plt.plot(x, y, label=m, dashes=d)
@@ -358,21 +373,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
     parser.add_argument('--m', nargs='+', type=str, default="graph_lstm", help='model name')
     parser.add_argument('--ds', nargs='+', type=str, default="data_089907f8", help='dataset')
-    parser.add_argument('--re', action='store_true', help='for error bar depict, repeat or not')
-    parser.add_argument('--mt', type=str, default='1', help='select the metric for analysis, [1, 2, 3, 4]='
-                                               '[re_best_min_val_loss, re_best_max_val_acc, '
-                                               're_best_max_mean_test_acc, re_best_max_10_test_acc]')
+    # parser.add_argument('--re', action='store_true', help='for error bar depict, repeat or not')
+    parser.add_argument('--mt', type=str, default='0', choices=['1', '2', '0'],
+                        help='select the metric for analysis, [1, 2]=[re_best_min_val_loss, re_best_max_val_acc]')
     args = parser.parse_args()
 
     model_name = args.m
     dataset = args.ds
-    repe = args.re
     mt = args.mt
 
-    analysis_draw(model_name, dataset, repe, mt)
+    analysis_draw(model_name, dataset, mt)
 
 # normal analysis
 # python codes/analysis_res.py --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
 
 # for repeat analysis
-# python codes/analysis_res.py --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --re --mt 1
+# python codes/analysis_res.py --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --mt 1

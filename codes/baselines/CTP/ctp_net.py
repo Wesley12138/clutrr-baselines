@@ -466,7 +466,7 @@ class CtpEncoder(Net):
         self.memory = None
 
         encoder_factory = Encoder_hop()
-        hops_lst = [encoder_factory.make_hop(s, model_config) for s in hops_str]
+        hops_lst = [encoder_factory.make_hop(s, model_config, self.edge_embedding, kernel) for s in hops_str]
         # hops_str=['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
         self.hoppy = Hoppy(model=model, k=k_max, depth=max_depth, tnorm_name=tnorm_name, hops_lst=hops_lst, R=gntp_R)
 
@@ -491,7 +491,7 @@ class CtpEncoder(Net):
             facts = [r_emb, s_emb, o_emb]   # list:3   [2x50 2x50 2x50]   即[r, s, o]的emb
             node_lst = [node for node in range(batch.geo_slices[i])]  # [0, 1, 2]   Todo: the name/idx of the nodes
             node_lst = torch.from_numpy(np.array(node_lst, dtype=np.int64))
-            embeddings = self.embedding(node_lst)  # 获得story里人名（小->大） 3x50
+            embeddings = self.embedding(node_lst)  # node_name(ascending) 3x50
 
             query = self.embedding(batch.query_edge.squeeze(1)[i,:].squeeze(0))  # 2x50
             arg1_emb = query[0,:].repeat([self.model_config.target_size, 1])  # 22x50
@@ -532,24 +532,29 @@ class Encoder_hop:
         super().__init__()
 
     @staticmethod
-    def make_hop(s: str, model_config, memory=None) -> Tuple[BaseReformulator, bool]:   # i.e. '2'
-        # nonlocal memory   # 外部嵌套函数内的变量
+    def make_hop(s: str, model_config, relation_embeddings, kernel, memory=None) -> Tuple[BaseReformulator, bool]:   # i.e. '2'
         if s.isdigit():
             nb_hops, is_reversed = int(s), False   # nb_hops=2, is_reversed=False
         else:
             nb_hops, is_reversed = int(s[:-1]), True
-        reformulator_name = model_config.encoder.reformulator_name
+
+        model_name = model_config.encoder.model_name   # ctp_s, ctp_l, ctp_a, ctp_m, ntp
+        if model_name == 'ntp':
+            reformulator_name = model_name
+        else:
+            reformulator_name = model_name.split('_')[1]
+
         nb_rules = model_config.encoder.hidden_dim
         embedding_size= model_config.embedding.dim
         ref_init_type = 'random'
         res = None
-        if reformulator_name in {'static'}:
+        if reformulator_name in {'s'}:  # static
             res = StaticReformulator(nb_hops, embedding_size, init_name=ref_init_type)
-        elif reformulator_name in {'linear'}:
+        elif reformulator_name in {'l'}:   # linear
             res = LinearReformulator(nb_hops, embedding_size, init_name=ref_init_type)
-        elif reformulator_name in {'attentive'}:
+        elif reformulator_name in {'a'}:   # attentive
             res = AttentiveReformulator(nb_hops, relation_embeddings, init_name=ref_init_type)
-        elif reformulator_name in {'memory'}:
+        elif reformulator_name in {'m'}:   # memory
             if memory is None:
                 memory = MemoryReformulator.Memory(nb_hops, nb_rules, embedding_size, init_name=ref_init_type)
                 # nb_hops=2, nb_rules=512, embedding_size=50, init_name='random'
@@ -572,36 +577,3 @@ class Encoder_hop:
                                   kernel=kernel, init_name=ref_init_type)
         assert res is not None
         return res, is_reversed   # is_reversed=False
-
-    # @staticmethod
-    # def scoring_function(story: List[Fact],
-    #                      targets: List[Fact]) -> Tensor:
-    #     story_rel = encode_relation(story, relation_embeddings.weight, relation_to_idx, device)
-    #     story_arg1, story_arg2 = encode_arguments(story, entity_embeddings.weight, entity_to_idx, device)
-    #
-    #     targets_rel = encode_relation(targets, relation_embeddings.weight, relation_to_idx, device)
-    #     targets_arg1, targets_arg2 = encode_arguments(targets, entity_embeddings.weight, entity_to_idx, device)
-    #
-    #     embeddings = encode_entities(story, entity_embeddings.weight, entity_to_idx, device)
-    #
-    #     facts = [story_rel, story_arg1, story_arg2]
-    #
-    #     max_depth_ = hoppy.depth
-    #     if test_max_depth is not None:
-    #         hoppy.depth = test_max_depth
-    #
-    #     scores = hoppy.score(targets_rel, targets_arg1, targets_arg2, facts, embeddings)
-    #
-    #     if test_max_depth is not None:
-    #         hoppy.depth = max_depth_
-    #
-    #     return scores
-    #
-    # @staticmethod
-    # def evaluate(instances: List[Instance], path: str, sample_size: Optional[int] = None) -> float:
-    #     res = 0.0
-    #     if len(instances) > 0:
-    #         res = accuracy(scoring_function=scoring_function, instances=instances, sample_size=sample_size,
-    #                        relation_to_predicate=relation_to_predicate, predicate_to_relations=predicate_to_relations)
-    #         logger.info(f'Test Accuracy on {path}: {res:.6f}')
-    #     return res

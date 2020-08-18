@@ -72,9 +72,11 @@ if __name__ == '__main__':
     config_id, exp_id, hyperparas = argument_parser()
     if config_id.split('_')[0] == 'graph':
         config_id, model_name = 'graph_nn', config_id
+    elif config_id.split('_')[0] == 'ctp' or config_id == 'ntp':
+        config_id, model_name = 'ctp', config_id
     else: model_name = config_id
-
     print(config_id)
+
     if len(exp_id) == 0:
         config = get_config(config_id, model_name, hyperparas)
         log_base = config['general']['base_path']
