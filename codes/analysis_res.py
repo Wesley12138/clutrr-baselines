@@ -384,8 +384,16 @@ if __name__ == '__main__':
 
     analysis_draw(model_name, dataset, mt)
 
+
+# model: gat gcn graph_boe graph_cnn graph_cnnh graph_rnn graph_lstm graph_gru graph_birnn graph_bilstm graph_bigru
+#        graph_intra graph_multihead ctp_s ctp_l ctp_a ctp_m ntp
+
 # normal analysis
-# python codes/analysis_res.py --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
+# python codes/analysis_res.py
+# --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe
+# --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
 
 # for repeat analysis
-# python codes/analysis_res.py --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --mt 1
+# python codes/analysis_res.py
+# --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe
+# --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --mt 1
