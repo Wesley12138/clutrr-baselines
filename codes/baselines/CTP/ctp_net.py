@@ -7,17 +7,14 @@ from codes.net.base_net import Net
 import torch.nn.functional as F
 
 from codes.baselines.CTP.kb import NeuralKB
-# from codes.baselines.CTP.model import Hoppy
-
 from codes.reformulators import BaseReformulator
 from codes.reformulators import StaticReformulator
 from codes.reformulators import LinearReformulator
 from codes.reformulators import AttentiveReformulator
 from codes.reformulators import MemoryReformulator
 from codes.reformulators import NTPReformulator
-
 from codes.kernels import BaseKernel, GaussianKernel
-# from codes.regularizers import N2, N3, Entropy
+
 import numpy as np
 
 
@@ -41,21 +38,21 @@ class Hoppy(nn.Module):
         self.tnorm_name = tnorm_name   # 'min
         assert self.tnorm_name in {'min', 'prod'}
         self.R = R   # None
-        self._hops_lst = nn.ModuleList([hops for hops, _ in hops_lst])   # 类似nn.Sequential()，但里面顺序无所谓，且可编辑forward，此处如注册网络
+        self._hops_lst = nn.ModuleList([hops for hops, _ in hops_lst])   # similar to nn.Sequential()，but not follow the order and forward editable
         self.hops_lst = hops_lst
 
         print(f'Hoppy(k={k}, depth={depth}, hops_lst={[h.__class__.__name__ for h in self._hops_lst]})')
-        # INFO:kbcr.clutrr.models.model:Hoppy(k=3, depth=2, hops_lst=['MemoryReformulator', ...'MemoryReformulator'])  重复10次
+        # INFO:kbcr.clutrr.models.model:Hoppy(k=3, depth=2, hops_lst=['MemoryReformulator', ...'MemoryReformulator'])  10 times
 
     def _tnorm(self, x: Tensor, y: Tensor):
         return x * y if self.tnorm_name == 'prod' else torch.min(x, y)
 
     def r_hop(self,
-              rel: Tensor,   # torch.Size([22, 50])   target所有r'
-              arg1: Optional[Tensor],   # torch.Size([22, 50])   target的s'
+              rel: Tensor,   # torch.Size([22, 50])   all target r'
+              arg1: Optional[Tensor],   # torch.Size([22, 50])   target s'
               arg2: Optional[Tensor],   # None
-              facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o]的emb
-              entity_embeddings: Tensor,   # 3x50  story里人名（小->大）
+              facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o] emb
+              entity_embeddings: Tensor,   # 3x50  story nodes(names) ascending
               depth: int) -> Tuple[Tensor, Tensor]:   # 0=1-1
         assert (arg1 is None) ^ (arg2 is None)
         assert depth >= 0
@@ -80,38 +77,38 @@ class Hoppy(nn.Module):
         return z_scores, z_emb
 
     def score(self,
-              rel: Tensor,    # 22x50   target所有的 r的  (22种可能的relation)
-              arg1: Tensor,    # 22x50   target所有的 s的 (重复了22次)
-              arg2: Tensor,    # 22x50   target所有的 o的 (重复了22次)
-              facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o]的emb
-              entity_embeddings: Tensor) -> Tensor:   # 3x50    story里人名（小->大）
+              rel: Tensor,    # 22x50   all target r  (22 possible relations)
+              arg1: Tensor,    # 22x50   target s (repeat 22 times)
+              arg2: Tensor,    # 22x50   target o (repeat 22 times)
+              facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o] emb
+              entity_embeddings: Tensor) -> Tensor:   # 3x50    story nodes(names) ascending
         res = self.r_score(rel, arg1, arg2, facts, entity_embeddings, depth=self.depth)   #22  depth=2
         return res
 
     def r_score(self,
-                rel: Tensor,   # 22x50   target所有的 r的  (22种可能的relation)
-                arg1: Tensor,   # 22x50   target所有的 s的 (重复了22次)
-                arg2: Tensor,   # 22x50   target所有的 o的 (重复了22次)
-                facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o]的emb
-                entity_embeddings: Tensor,   # 3x50    story里人名（小->大）
+                rel: Tensor,   # 22x50   all target r  (22 possible relations)
+                arg1: Tensor,   # 22x50   target s (repeat 22 times)
+                arg2: Tensor,   # 22x50   target o (repeat 22 times)
+                facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o] emb
+                entity_embeddings: Tensor,   # 3x50    story nodes(names) ascending
                 depth: int) -> Tensor:   # 2
         res = None
         for d in range(depth + 1):   # 0~2
-            scores = self.depth_r_score(rel, arg1, arg2, facts, entity_embeddings, depth=d)   # depth=0~2  i.e. 获得22种情况分数
+            scores = self.depth_r_score(rel, arg1, arg2, facts, entity_embeddings, depth=d)   # depth=0~2  i.e. obtain 22 scores
             res = scores if res is None else torch.max(res, scores)
         return res
 
     def depth_r_score(self,
-                      rel: Tensor,   # 22x50   target所有的 r的  (22种可能的relation)
-                      arg1: Tensor,   # 22x50   target所有的 s的 (重复了22次)
-                      arg2: Tensor,   # 22x50   target所有的 o的 (重复了22次)
-                      facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o]的emb
-                      entity_embeddings: Tensor,   # 3x50    story里人名（小->大）
+                      rel: Tensor,   # 22x50   all target r  (22 possible relations)
+                      arg1: Tensor,   # 22x50   target s (repeat 22 times)
+                      arg2: Tensor,   # 22x50   target o (repeat 22 times)
+                      facts: List[Tensor],   # [2x50 2x50 2x50]  story[r, s, o] emb
+                      entity_embeddings: Tensor,   # 3x50    story nodes(names) ascending
                       depth: int) -> Tensor:   # 0~2
         assert depth >= 0
 
         if depth == 0:
-            return self.model.score(rel, arg1, arg2, facts)   # 进行高斯核
+            return self.model.score(rel, arg1, arg2, facts)   # Gaussian kernel
 
         batch_size, embedding_size = rel.shape[0], rel.shape[1]   # 22, 50
         global_res = None
@@ -151,10 +148,10 @@ class Hoppy(nn.Module):
         # for hops_generator, is_reversed in self.hops_lst:
         # for rule_idx, (hops_generator, is_reversed) in enumerate(self.hops_lst):
         for rule_idx, (hops_generator, is_reversed) in enumerate(new_hops_lst):   # 0~9，512x50+50x512 ，False
-            sources, scores = arg1, None   # torch.Size([22, 50]) target所有的 s的, None
+            sources, scores = arg1, None   # torch.Size([22, 50]) target s, None
 
             # XXX
-            prior = hops_generator.prior(rel)   # None   rel:22x50 target所有的 r的
+            prior = hops_generator.prior(rel)   # None   rel:22x50 all target r
             if prior is not None:
 
                 if mask is not None:
@@ -166,7 +163,7 @@ class Hoppy(nn.Module):
 
             # scores = hops_generator.prior(rel)
 
-            hop_rel_lst = hops_generator(rel)   #list:2 [torch.Size([22, 50]), torch.Size([22, 50])]    rel:22x50 target所有的 r的, 经过linear(50,512),@memory(512,50)
+            hop_rel_lst = hops_generator(rel)   #list:2 [torch.Size([22, 50]), torch.Size([22, 50])]    rel:22x50 all target r, with linear(50,512), @memory(512,50)
             nb_hops = len(hop_rel_lst)   # 2
 
             for hop_idx, hop_rel in enumerate(hop_rel_lst, start=1):   # 1~2   torch.Size([22, 50])
@@ -187,7 +184,7 @@ class Hoppy(nn.Module):
                     else:
                         z_scores, z_emb = self.r_hop(hop_rel_2d, sources_2d, None,
                                                      facts, entity_embeddings, depth=depth - 1)
-                        # target所有r’的torch.Size([22, 50]), target的s‘的torch.Size([22, 50]), ,[2x50 2x50 2x50] story[r, s, o]的emb, 3x50 story里人名（小->大）, 0=1-1
+                        # all target r’: torch.Size([22, 50]), target s‘: torch.Size([22, 50]), None, [2x50 2x50 2x50] story[r, s, o] emb, 3x50 story nodes(names) ascending, 0=1-1
                         # z_scores:torch.Size([22, 3]), z_emb:torch.Size([22, 3, 50])
                     k = z_emb.shape[1]   # 3
 
@@ -236,8 +233,8 @@ class Hoppy(nn.Module):
 
     def r_forward(self,
                   rel: Tensor, arg1: Optional[Tensor], arg2: Optional[Tensor],   # 22x50(target,r'), 22x50(target,s'), None
-                  facts: List[Tensor],   # [2x50 2x50 2x50] story[r, s, o]的emb
-                  entity_embeddings: Tensor,   # 3x50 story里人名（小->大）
+                  facts: List[Tensor],   # [2x50 2x50 2x50] story[r, s, o] emb
+                  entity_embeddings: Tensor,   # 3x50 story nodes(names) ascending
                   depth: int) -> Tuple[Optional[Tensor], Optional[Tensor]]:   # 0
         res_sp, res_po = None, None
         for d in range(depth + 1):   # 0   depth=0
@@ -248,8 +245,8 @@ class Hoppy(nn.Module):
 
     def depth_r_forward(self,
                         rel: Tensor, arg1: Optional[Tensor], arg2: Optional[Tensor],   # 22x50(target,r'), 22x50(target,s'), None
-                        facts: List[Tensor],   # [2x50 2x50 2x50] story[r, s, o]的emb
-                        entity_embeddings: Tensor,   # 3x50 story里人名（小->大）
+                        facts: List[Tensor],   # [2x50 2x50 2x50] story[r, s, o] emb
+                        entity_embeddings: Tensor,   # 3x50 story nodes(names) ascending
                         depth: int) -> Tuple[Optional[Tensor], Optional[Tensor]]:   # 0
         batch_size, embedding_size = rel.shape[0], rel.shape[1]   # 22, 50
 
@@ -453,7 +450,7 @@ class CtpEncoder(Net):
         self.embedding = torch.nn.Embedding(num_embeddings=self.model_config.unique_nodes,
                                             embedding_dim=self.model_config.embedding.dim)  # num_embeddings=len(self.model_config.entity_lst)    max_norm=1
         # torch.nn.init.uniform_(self.embedding.weight, -1.0, 1.0)
-        # self.embedding.requires_grad = False  # 阻止权重改变
+        # self.embedding.requires_grad = False  # prevent changing of weight
         torch.nn.init.xavier_uniform_(self.embedding.weight)
         self.embedding.weight.data *= init_size  # init_size=1.0
 
@@ -507,24 +504,14 @@ class Decoder(Net):
     """
     Compute the graph state with the query
     """
-
     def __init__(self, model_config):
         super(Decoder, self).__init__(model_config)
         pass
 
-
-
     def calculate_query(self, batch):
-        """
-        Extract the node embeddings using batch.query_edge
-        :param batch:
-        :return:
-        """
-
         return batch.encoder_hidden
 
     def forward(self, batch, step_batch):
-
         return batch.encoder_outputs, None, None
 
 class Encoder_hop:

@@ -7,7 +7,7 @@ from allennlp.modules.seq2vec_encoders import CnnEncoder
 from allennlp.modules.seq2vec_encoders import PytorchSeq2VecWrapper
 from allennlp.modules.seq2vec_encoders.cnn_highway_encoder import CnnHighwayEncoder
 from allennlp.modules.similarity_functions import MultiHeadedSimilarity
-from allennlp.modules.seq2seq_encoders import StackedSelfAttentionEncoder
+# from allennlp.modules.seq2seq_encoders import StackedSelfAttentionEncoder
 # from allennlp.modules.augmented_lstm import AugmentedLstm
 # from allennlp.modules.stacked_alternating_lstm import StackedAlternatingLstm
 # from allennlp.modules.stacked_bidirectional_lstm import StackedBidirectionalLstm
@@ -183,13 +183,13 @@ class Seq2VecEncoderFactory:
             aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
                                               hidden_size=hidden_size, batch_first=True))
             encoder = lambda x, y: aggr(intra(x, y), y)
-        elif name == 'stack':  # transformer
-            sta = StackedSelfAttentionEncoder(input_dim=embedding_dim, hidden_dim=hidden_size,
-                                                  projection_dim=hidden_size, feedforward_hidden_dim=hidden_size,
-                                                  num_layers=2, num_attention_heads=num_heads)
-            aggr = PytorchSeq2VecWrapper(LSTM(input_size=hidden_size, bidirectional=True,
-                                              hidden_size=hidden_size, batch_first=True))
-            encoder = lambda x, y: aggr(sta(x, y), y)
+        # elif name == 'stack':  # transformer, hidden%heads==0, not yet.
+        #     sta = StackedSelfAttentionEncoder(input_dim=embedding_dim, hidden_dim=hidden_size,
+        #                                           projection_dim=hidden_size, feedforward_hidden_dim=hidden_size,
+        #                                           num_layers=2, num_attention_heads=num_heads)
+        #     aggr = PytorchSeq2VecWrapper(LSTM(input_size=hidden_size, bidirectional=True,
+        #                                       hidden_size=hidden_size, batch_first=True))
+        #     encoder = lambda x, y: aggr(sta(x, y), y)
         elif name == 'multihead':
             sim = MultiHeadedSimilarity(num_heads, embedding_dim)
             multi = IntraSentenceAttentionEncoder(input_dim=embedding_dim, projection_dim=embedding_dim,

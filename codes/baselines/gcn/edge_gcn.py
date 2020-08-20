@@ -111,7 +111,7 @@ class GcnEncoder(Net):
             torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
 
         self.att1 = EdgeGcnConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
-                                self.model_config.graph.edge_dim, dropout = self.model_config.graph.dropout)
+                                self.model_config.graph.edge_dim, dropout=self.model_config.graph.dropout)
         self.att2 = EdgeGcnConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
                                 self.model_config.graph.edge_dim)
 

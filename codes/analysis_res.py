@@ -23,10 +23,12 @@ def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
         return f'{dataset}_{model_name}_ed_{ned}_hd_{hd}_ep_{ep}.csv'
     elif model_name in {'graph_stack', 'graph_multihead'}:
         return f'{dataset}_{model_name}_ed_{ned}_hd_{hd}_he_{he}_ep_{ep}.csv'
-    elif model_name in {'ctp_s', 'ctp_l', 'ctp_a', 'ntp'} :
+    elif model_name in {'ctp_s', 'ctp_l', 'ctp_a', 'ntp'}:
         return f'{dataset}_{model_name}_ed_{ned}_hop_{"".join(hop)}_ep_{ep}.csv'
     elif model_name == 'ctp_m':
         return f'{dataset}_{model_name}_ed_{ned}_rules_{hd}_hop_{"".join(hop)}_ep_{ep}.csv'
+    else:
+        return f'{dataset}_{model_name}_PROCESSING.csv'
 
 
 def create_csv(config):
@@ -117,7 +119,7 @@ def modify_hyperparas(config, model_name, hyperparas):
     modify hyper-parameters
     """
     ds, ned, eed, hd, ep, fi, he, hi, hop, se, mt = hyperparas
-    if model_name != 'gcn' and model_name != 'gat':
+    if model_name not in {'gcn', 'gat', 'rgcn'}:
         eed = ned
 
     config.general.id = config.model.encoder.model_name = model_name

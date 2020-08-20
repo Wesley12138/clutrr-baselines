@@ -15,8 +15,6 @@ def argument_parser():
     parser.add_argument('--he', type=int, default=3, help='num of heads')
     parser.add_argument('--hi', type=int, default=2, help='num of highway')
     parser.add_argument('--hop', nargs='+', type=str, default=['2', '2', '1R'])
-    # parser.add_argument('--ref', action='store', type=str, default='None',
-    #                     choices=['static', 'linear', 'attentive', 'memory', 'ntp', 'None'], help='reformulator')
     parser.add_argument('--se', type=int, default=42, help='seed')
     parser.add_argument('--mt', type=str, default=None, help='metric types: 1, 2')
 
