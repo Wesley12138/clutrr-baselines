@@ -11,7 +11,7 @@ import shutil
 def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
     if model_name == 'gat':
         return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_he_{he}_ep_{ep}.csv'
-    elif model_name == 'gcn':
+    elif model_name == 'gcn' or 'rgcn':
         return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_ep_{ep}.csv'
     elif model_name == 'graph_cnn':
         return f'{dataset}_{model_name}_ed_{ned}_fi_{fi}_ep_{ep}.csv'
@@ -119,7 +119,7 @@ def modify_hyperparas(config, model_name, hyperparas):
     modify hyper-parameters
     """
     ds, ned, eed, hd, ep, fi, he, hi, hop, se, mt = hyperparas
-    if model_name not in {'gcn', 'gat', 'rgcn'}:
+    if model_name not in {'gcn', 'gat', 'rgcn', 'agnn'}:
         eed = ned
 
     config.general.id = config.model.encoder.model_name = model_name
@@ -387,7 +387,7 @@ if __name__ == '__main__':
     analysis_draw(model_name, dataset, mt)
 
 
-# model: gat gcn graph_boe graph_cnn graph_cnnh graph_rnn graph_lstm graph_gru graph_birnn graph_bilstm graph_bigru
+# model: gat gcn rgcn graph_boe graph_cnn graph_cnnh graph_rnn graph_lstm graph_gru graph_birnn graph_bilstm graph_bigru
 #        graph_intra graph_multihead ctp_s ctp_l ctp_a ctp_m ntp
 
 # normal analysis
