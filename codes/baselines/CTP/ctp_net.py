@@ -440,7 +440,7 @@ class CtpEncoder(Net):
         init_size = model_config.encoder.init_size
         init_type = model_config.encoder.init_type
         scoring_type = model_config.encoder.scoring_type
-        hops_str = model_config.encoder.hops_str   # ['2', '2', '2', '2']
+        hops_str = model_config.encoder.hops_str   # ['2', '2', '2', '2', '2', '2', '2', '2', '2', '2']
         k_max = model_config.encoder.k_max
         max_depth = model_config.encoder.max_depth
         tnorm_name = model_config.encoder.tnorm_name

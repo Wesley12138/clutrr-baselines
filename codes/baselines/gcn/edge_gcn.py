@@ -15,7 +15,7 @@ class EdgeGcnConv(MessagePassing):
                  in_channels: int,
                  out_channels: int,
                  edge_dim: int,
-                 improved: bool = False,   #new
+                 improved: bool = False,
                  dropout: float = 0.0,
                  bias: bool = True):
         super(EdgeGcnConv, self).__init__(aggr='add')
@@ -23,7 +23,7 @@ class EdgeGcnConv(MessagePassing):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.edge_dim = edge_dim
-        self.improved = improved  # new
+        self.improved = improved
         self.dropout = dropout
         self.weight = Parameter(torch.Tensor(in_channels, out_channels))
         self.edge_update = Parameter(torch.Tensor(out_channels + edge_dim, out_channels))
