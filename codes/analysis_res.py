@@ -11,7 +11,7 @@ import shutil
 def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
     if model_name == 'gat':
         return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_he_{he}_ep_{ep}.csv'
-    elif model_name in {'gcn', 'rgcn', 'sgcn'}:
+    elif model_name in {'gcn', 'rgcn', 'sgcn', 'agnn'}:
         return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_ep_{ep}.csv'
     elif model_name == 'graph_cnn':
         return f'{dataset}_{model_name}_ed_{ned}_fi_{fi}_ep_{ep}.csv'
@@ -136,9 +136,8 @@ def modify_hyperparas(config, model_name, hyperparas):
     config.model.encoder.hops_str = hop
 
     print('*' * 100)
-    print(f'model={model_name}, dataset={ds}, node_embedding_dim={ned}, edge_embedding_dim={eed}, '
-          f'hidden_dim={hd}, num_epochs={ep}, num_filters={fi}, num_heads={he}, num_highway={hi}, hops_str={hop}, '
-          f'seed={se}, metric={mt}')
+    print(get_file_name(ds, model_name, ned, eed, hd, ep, fi, he, hi, hop))
+    print(f'seed={se}, metric={mt}')
     print('*' * 100)
 
     return config
