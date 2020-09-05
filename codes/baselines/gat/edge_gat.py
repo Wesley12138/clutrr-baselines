@@ -15,7 +15,6 @@ class EdgeGatConv(MessagePassing):
                  out_channels,
                  edge_dim,
                  heads=1,
-                 concat=False,
                  negative_slope=0.2,
                  dropout=0.,
                  bias=True):
@@ -25,7 +24,6 @@ class EdgeGatConv(MessagePassing):
         self.out_channels = out_channels
         self.edge_dim = edge_dim
         self.heads = heads
-        self.concat = concat
         self.negative_slope = negative_slope
         self.dropout = dropout
 
@@ -33,9 +31,7 @@ class EdgeGatConv(MessagePassing):
         self.att = Parameter(torch.Tensor(1, heads, 2 * out_channels + edge_dim))
         self.edge_update = Parameter(torch.Tensor(out_channels + edge_dim, out_channels))
 
-        if bias and concat:
-            self.bias = Parameter(torch.Tensor(heads * out_channels))
-        elif bias and not concat:
+        if bias:
             self.bias = Parameter(torch.Tensor(out_channels))
         else:
             self.register_parameter('bias', None)

@@ -15,7 +15,7 @@ class EdgeGcnConv(MessagePassing):
                  in_channels: int,
                  out_channels: int,
                  edge_dim: int,
-                 improved: bool = False,
+                 improved: bool = False,  # for add self_loop value: False, +1; True, +2
                  dropout: float = 0.0,
                  bias: bool = True):
         super(EdgeGcnConv, self).__init__(aggr='add')
@@ -40,7 +40,7 @@ class EdgeGcnConv(MessagePassing):
         glorot(self.edge_update)
         zeros(self.bias)
 
-    def forward(self, x, edge_index,edge_attr, edge_weight=None):
+    def forward(self, x, edge_index, edge_attr, edge_weight=None):
 
         x = torch.matmul(x, self.weight)
         if edge_weight is None:
@@ -58,7 +58,7 @@ class EdgeGcnConv(MessagePassing):
         deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
 
         norm = deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
-        return self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)
+        return self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)   # Sum up neighboring node features
 
     def message(self, x_j, edge_attr, norm):
         x_j = torch.cat([x_j, edge_attr], dim=-1)

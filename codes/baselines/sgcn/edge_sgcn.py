@@ -1,6 +1,6 @@
 # SGCN with Edge features
 import torch
-from torch.nn import Parameter, Linear
+from torch.nn import Parameter
 import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import add_remaining_self_loops
@@ -24,16 +24,25 @@ class EdgeSGConv(MessagePassing):
         self.K = K
         self.edge_dim = edge_dim
 
-        self.lin = Linear(in_channels, out_channels, bias=bias)
+        # self.lin = Linear(in_channels, out_channels, bias=bias)
+        self.weight = Parameter(torch.Tensor(in_channels, out_channels))
         self.edge_update = Parameter(torch.Tensor(out_channels + edge_dim, out_channels))
+
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_channels))
+        else:
+            self.register_parameter('bias', None)
 
         self.reset_parameters()
 
     def reset_parameters(self):
+        glorot(self.weight)
         glorot(self.edge_update)
-        self.lin.reset_parameters()
+        zeros(self.bias)
+        # self.lin.reset_parameters()
 
     def forward(self, x, edge_index, edge_attr, edge_weight=None):
+        x = torch.matmul(x, self.weight)
         if edge_weight is None:
             edge_weight = torch.ones((edge_index.size(1),), dtype=x.dtype, device=edge_index.device)
 
@@ -50,8 +59,7 @@ class EdgeSGConv(MessagePassing):
         norm = deg_inv_sqrt[row] * edge_weight * deg_inv_sqrt[col]
 
         for k in range(self.K - 1):
-            x = self.propagate(edge_index, x=x, edge_weight=edge_weight,
-                               size=None)
+            x = self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)
         return self.propagate(edge_index, x=x, edge_attr=edge_attr, norm=norm)
 
     def message(self, x_j, edge_attr, norm):
@@ -62,17 +70,19 @@ class EdgeSGConv(MessagePassing):
     def update(self, aggr_out):
         aggr_out = torch.mm(aggr_out, self.edge_update)
 
-        return self.lin(aggr_out)
+        if self.bias is not None:
+            aggr_out = aggr_out + self.bias
+        return aggr_out
 
     def __repr__(self):
-        return '{}({}, {}, K={})'.format(self.__class__.__name__,
-                                         self.in_channels, self.out_channels,
-                                         self.K)
+        return self.__class__.__name__ + ' (' \
+               + str(self.in_channels) + ' -> ' \
+               + str(self.out_channels) + 'with k=' + str(self.K) + ')'
 
 
 class SgcnEncoder(Net):
     """
-    Encoder which uses EdgeGcnConv
+    Encoder which uses EdgeSGcnConv
     """
 
     def __init__(self,model_config, shared_embeddings=None):
@@ -102,20 +112,15 @@ class SgcnEncoder(Net):
             self.edge_embedding = torch.nn.Embedding(model_config.edge_types, model_config.graph.edge_dim)
             torch.nn.init.xavier_uniform_(self.edge_embedding.weight)
 
-        self.att1 = EdgeSGConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
-                               self.model_config.graph.edge_dim)
-        self.att2 = EdgeSGConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
-                               self.model_config.graph.edge_dim)
+        self.att = EdgeSGConv(self.model_config.embedding.dim, self.model_config.embedding.dim,
+                               self.model_config.graph.edge_dim, K=2*self.model_config.graph.num_message_rounds)
 
     def forward(self, batch):
         data = batch.geo_batch
         x = self.embedding(data.x).squeeze(1) # N x node_dim
         edge_attr = self.edge_embedding(data.edge_attr).squeeze(1) # E x edge_dim
-        for nr in range(self.model_config.graph.num_message_rounds):
-            x = F.dropout(x, p=0.6, training=self.training)
-            x = F.elu(self.att1(x, data.edge_index, edge_attr))
-            x = F.dropout(x, p=0.6, training=self.training)
-            x = self.att2(x, data.edge_index, edge_attr)
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.att(x, data.edge_index, edge_attr)
         # restore x into B x num_node x dim
         chunks = torch.split(x, batch.geo_slices, dim=0)
         chunks = [p.unsqueeze(0) for p in chunks]
