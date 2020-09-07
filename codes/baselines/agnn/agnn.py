@@ -7,6 +7,7 @@ from torch_geometric.utils import remove_self_loops, add_self_loops, softmax
 from codes.baselines.gcn.inits import *
 from codes.net.base_net import Net
 
+
 class EdgeAGNNConv(MessagePassing):
     def __init__(self,
                  in_channels: int,

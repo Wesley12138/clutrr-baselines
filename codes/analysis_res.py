@@ -17,7 +17,7 @@ def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
         return f'{dataset}_{model_name}_ed_{ned}_fi_{fi}_ep_{ep}.csv'
     elif model_name == 'graph_cnnh':
         return f'{dataset}_{model_name}_ed_{ned}_hi_{hi}_ep_{ep}.csv'
-    elif model_name == 'graph_boe':
+    elif model_name in {'graph_boe', 'just', 'mp2v'}:
         return f'{dataset}_{model_name}_ed_{ned}_ep_{ep}.csv'
     elif model_name in {'graph_rnn', 'graph_birnn', 'graph_lstm', 'graph_bilstm', 'graph_gru', 'graph_bigru', 'graph_intra'}:
         return f'{dataset}_{model_name}_ed_{ned}_hd_{hd}_ep_{ep}.csv'
