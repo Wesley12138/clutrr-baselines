@@ -28,7 +28,7 @@ def get_file_name(dataset, model_name, ned, eed, hd, ep, fi, he, hi, hop):
     elif model_name == 'ctp_m':
         return f'{dataset}_{model_name}_ed_{ned}_rules_{hd}_hop_{"".join(hop)}_ep_{ep}.csv'
     else:
-        return f'{dataset}_{model_name}_PROCESSING.csv'
+        return f'{dataset}_{model_name}_ned_{ned}_eed_{eed}_hd_{hd}_ep_{ep}_fi_{fi}_he_{he}_hi_{hi}_hop_{hop}.csv'
 
 
 def create_csv(config):
@@ -218,7 +218,11 @@ def analysis_draw(model_name, dataset, mt):
                 df_min = df_max = df_mean = df_10 = pd.DataFrame(columns=col_name)
                 for i, csv_data_ in enumerate(csv_datas):
                     # min val_loss
-                    opt_idx_min = csv_data_[col_name[1]].idxmin()
+                    try:
+                        opt_idx_min = csv_data_[col_name[1]].idxmin()
+                    except TypeError:
+                        print(f'Error: No data in {file_names[i]}')
+                        exit()
                     df_min = df_min.append(csv_data_.iloc[opt_idx_min], ignore_index=True)
                     # max_val_acc
                     opt_idx_max = csv_data_[col_name[2]].idxmax()
@@ -360,7 +364,7 @@ def draw_img(x, ys, model, img_dir, name):
                    (2, 2, 3, 1),
                    (1, 1, 3, 1),
                    (4, 3, 2, 1),
-                   (3, 1.5, 3.5, 2)]   # 11 line styles
+                   (3, 1.5, 3.5, 2), ""]   # 12 line styles
     plt.figure()
     for y, m, d in zip(ys, model, dash_styles):
         plt.plot(x, y, label=m, dashes=d)
@@ -374,7 +378,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="obtain the dataset and model's name for anlaysis")
     parser.add_argument('--m', nargs='+', type=str, default="graph_lstm", help='model name')
     parser.add_argument('--ds', nargs='+', type=str, default="data_089907f8", help='dataset')
-    # parser.add_argument('--re', action='store_true', help='for error bar depict, repeat or not')
     parser.add_argument('--mt', type=str, default=None, choices=['1', '2', None],
                         help='select the metric for analysis, [1, 2]=[re_best_min_val_loss, re_best_max_val_acc]')
     args = parser.parse_args()
@@ -386,17 +389,20 @@ if __name__ == '__main__':
     analysis_draw(model_name, dataset, mt)
 
 
-# model: gat gcn rgcn agcn sgcn
+# model: gat gcn agnn rgcn agcn sgcn
 #        graph_boe graph_cnn graph_cnnh graph_rnn graph_lstm graph_gru graph_birnn graph_bilstm graph_bigru
-#        graph_intra graph_multihead
+#        graph_intra graph_multihead graph_stack
 #        ctp_s ctp_l ctp_a ctp_m ntp
+#        bilstm bilstm_atten bilstm_mean mac rn
 
-# normal analysis
+# --m: at most 12 types
+
+# normal analysis: get best params for each model (csv under logs/model), draw line_graph for models (jpg under plots/dataset)
 # python codes/analysis_res.py
 # --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe
 # --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
 
-# for repeat analysis
+# for repeat analysis: draw confidence line_graph for models (jpg under plots/dataset/"..._re_...")
 # python codes/analysis_res.py
 # --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe
 # --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --mt 1
