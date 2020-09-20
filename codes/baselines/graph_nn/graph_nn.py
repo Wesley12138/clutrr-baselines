@@ -95,7 +95,7 @@ class Decoder(Net):
             input_dim = model_config.encoder.output_dim * 2
         elif model_name == 'cnnh':
             input_dim = model_config.encoder.projection_dim * 2
-        elif model_name == 'birnn' or 'bigru' or 'bilstm' or 'intra' or 'multihead':
+        elif model_name in {'birnn', 'bigru', 'bilstm', 'intra', 'multihead', 'stack'}:
             input_dim = model_config.encoder.hidden_dim * 4
         else: # rnn, lstm, gru
             input_dim = model_config.encoder.hidden_dim * 2
@@ -180,7 +180,7 @@ class Seq2VecEncoderFactory:
             aggr = PytorchSeq2VecWrapper(LSTM(input_size=embedding_dim + output_dim, bidirectional=True,
                                               hidden_size=hidden_size, batch_first=True))
             encoder = lambda x, y: aggr(intra(x, y), y)
-        elif name == 'stack':  # transformer, hidden%heads==0, not yet.
+        elif name == 'stack':  # transformer, hidden%heads==0
             sta = StackedSelfAttentionEncoder(input_dim=embedding_dim, hidden_dim=hidden_size,
                                                   projection_dim=hidden_size, feedforward_hidden_dim=hidden_size,
                                                   num_layers=2, num_attention_heads=num_heads)

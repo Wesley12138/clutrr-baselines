@@ -41,8 +41,6 @@ def create_csv(config):
     dataset = config.dataset.data_path
     train_file = config.dataset.train_file
     test_file = config.dataset.test_files
-    embedding_dim = config.model.embedding.dim
-    hidden_dim = config.model.encoder.hidden_dim
     ned = config.model.embedding.dim
     eed = config.model.graph.edge_dim
     hd = config.model.encoder.hidden_dim
@@ -186,11 +184,20 @@ def analysis_draw(model_name, dataset, mt):
                 col_name = list(csv_datas[0].columns)
                 df = pd.DataFrame(columns=col_name)
                 col = int(mt)
-                for csv_data_ in csv_datas: # based on type to choose and put them together
+                for i, csv_data_ in enumerate(csv_datas): # based on type to choose and put them together
                     if mt == '1':
-                        opt_idx = csv_data_[col_name[col]].idxmin()
-                    else:
-                        opt_idx = csv_data_[col_name[col]].idxmax()
+                        try:
+                            opt_idx = csv_data_[col_name[col]].idxmin()
+                        except TypeError:
+                            print(f'Error: No data in {file_names[i]}')
+                            exit()
+                    elif mt == '2':
+                        try:
+                            opt_idx = csv_data_[col_name[col]].idxmax()
+                        except TypeError:
+                            print(f'Error: No data in {file_names[i]}')
+                            exit()
+                    else: print(f'Error: metric is not euqal to 1 or 2, now mt = {mt}')
                     df = df.append(csv_data_.iloc[opt_idx], ignore_index=True)
 
                 # record the mean and std for each model
@@ -403,6 +410,8 @@ if __name__ == '__main__':
 # --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
 
 # for repeat analysis: draw confidence line_graph for models (jpg under plots/dataset/"..._re_...")
+#                      get optimal hyperparameters for models (csv under tmp/dataset/"..._re_...")
 # python codes/analysis_res.py
 # --m gat gcn graph_bilstm graph_birnn graph_bigru graph_cnn graph_cnnh graph_boe
-# --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e --mt 1
+# --ds data_089907f8 data_db9b8f04 data_7c5b0e70 data_06b8f2a1 data_523348e6 data_d83ecc3e
+# --mt 1
