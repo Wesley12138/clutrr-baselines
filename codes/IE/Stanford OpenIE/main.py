@@ -61,7 +61,7 @@ def get_closest_name(rel, lst, text, direction, rel_id=None, ignore_name=None):
 def main(argv):
     argparser = argparse.ArgumentParser('OPENIE', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    extract_path = "corpus/6.2_train.csv"  # extract file
+    extract_path = "../corpus/6.2_train.csv"  # extract file
 
     argparser.add_argument('--extract', action='store', type=str, default=extract_path)
 
